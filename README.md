@@ -1,86 +1,50 @@
 # log-mcp
 
-Read-only [Model Context Protocol](https://modelcontextprotocol.io/) (MCP) server for log analysis. The host launches the `log-mcp` binary; the process speaks MCP over **stdio** (JSON-RPC on stdin/stdout) and exposes tools for inspecting log data **without mutating** underlying sources.
+Read-only [Model Context Protocol](https://modelcontextprotocol.io/) (MCP) server for log analysis. A host runs the `log-mcp` binary; the process speaks MCP over **stdio** (JSON-RPC on stdin/stdout) and exposes tools to inspect log data **without mutating** underlying sources.
+
+## Documentation
+
+**Detailed, maintained documentation is in [`docs/`](docs/).** The sections below are a compact overview; for environment variables, the full tool catalog, security limits, parsing behavior, and CI, follow the links.
+
+| Resource | Purpose |
+|----------|---------|
+| [**docs/README.md**](docs/README.md) | Documentation index and update guidance. |
+| [**docs/architecture.md**](docs/architecture.md) | **Canonical reference:** MCP wiring, every tool, `LOG_MCP_*` / `LOG_MCP_SEC_*`, sources (file, Kubernetes, Docker, Cloud Foundry), parsing, normalization, pipeline. |
+| [**docs/testing-and-ci.md**](docs/testing-and-ci.md) | Parser fixtures, `go test` / vet, `govulncheck`, `go mod tidy` gate, workflows, releases. |
+| [CONTRIBUTING.md](CONTRIBUTING.md) | Branches, build/test commands, PR checklist. |
+| [SECURITY.md](SECURITY.md) | Reporting vulnerabilities. |
+| [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) | Community expectations. |
+| [LICENSE](LICENSE) | Apache License 2.0. |
 
 ## Status
 
 Active development on the `develop` branch. The MCP tool surface and JSON shapes may still evolve; pin releases or digests for production hosts if you need stability.
 
-## MCP server (current behavior)
+## MCP server (summary)
 
-### Transport and runtime
+- **Transport:** MCP over **stdio** via `github.com/modelcontextprotocol/go-sdk/mcp` (`StdioTransport`). **stdout** is reserved for MCP JSON-RPC; diagnostics must use **stderr** so the channel stays valid.
+- **Lifecycle:** `cmd/log-mcp` installs signal handling, then `server.Run` blocks until disconnect or interrupt.
+- **Identity:** MCP `Implementation` and the `version_info` tool use [`internal/buildinfo`](internal/buildinfo/buildinfo.go). Release binaries can stamp `Version` with `-ldflags` (see [`.github/workflows/release.yml`](.github/workflows/release.yml)).
+- **Registration:** [`internal/server.NewWithConfig`](internal/server/server.go) builds `mcp.NewServer` and applies [`internal/tools`](internal/tools/registry.go) in order: health → version → log tools → LLM-oriented helpers. See [**tool catalog →**](docs/architecture.md#log-mcp-tools).
+- **Log source:** Optional [`source.LogSource`](internal/source/source.go) from the environment (`LOG_MCP_ROOT`, Kubernetes, Docker, Cloud Foundry allowlists — [**full list →**](docs/architecture.md#log-source-abstraction)). If unset, log-backed tools still register but return a clear configuration error; `incident_summary` and `explain_log_pattern` do not need a source.
 
-- **Protocol:** MCP over **stdio** using `github.com/modelcontextprotocol/go-sdk/mcp` (`StdioTransport`). **stdout** is reserved for MCP messages; anything diagnostic must go to **stderr** so the channel stays valid JSON-RPC.
-- **Lifecycle:** `cmd/log-mcp` installs signal handling, then `server.Run` blocks until the client disconnects or the process is interrupted.
-- **Server identity:** MCP `Implementation` and the `version_info` tool use [`internal/buildinfo`](internal/buildinfo/buildinfo.go) (`Name`, `Version`). Release binaries can stamp `Version` via `-ldflags` (see [`.github/workflows/release.yml`](.github/workflows/release.yml)).
+**Redaction and limits** (`LOG_MCP_SEC_*`, argv allowlists, read-only file access): [**security section →**](docs/architecture.md#security-limits-log_mcp_sec_).
 
-### How tools are wired
-
-[`internal/server.NewWithConfig`](internal/server/server.go) constructs `mcp.NewServer` and applies a small **registry** ([`internal/tools`](internal/tools/registry.go)) in a fixed order:
-
-1. `RegisterHealthCheck` — always useful for orchestration probes.
-2. `RegisterVersionInfo` — build metadata.
-3. `RegisterLogTools` — log read/search/filter, summarization, correlation, and advanced analysis (see table below).
-4. `RegisterLLMTools` — deterministic helpers that consume **structured JSON only** (no direct log reads).
-
-Each installer calls `mcp.AddTool` with typed handlers so inputs/outputs are validated against JSON Schema metadata from struct tags.
-
-### Log sources and `LogSource`
-
-At startup, [`logSourceFromEnv`](internal/server/server.go) optionally builds a [`source.LogSource`](internal/source/source.go) from environment variables (`LOG_MCP_ROOT`, Kubernetes, Docker, Cloud Foundry allowlists — full detail in [docs/architecture.md](docs/architecture.md)). If **no** source is configured, `LogSource` is `nil`: **log-backed tools still register** but return a clear configuration error when invoked (so clients can call `health_check` / `version_info` without mounting logs). `incident_summary` and `explain_log_pattern` **do not** require a log source.
-
-### Tool catalog
-
-| Tool | Needs configured log source? | Role |
-|------|-----------------------------|------|
-| `health_check` | No | Liveness-style probe (`status: ok`). |
-| `version_info` | No | Server name and version string. |
-| `read_logs` | Yes | Sequential read with optional `max_lines`, time range, level, keyword; output lines are **redacted**. |
-| `search_logs` | Yes | Keyword search over redacted lines with optional filters and `max_matches`. |
-| `filter_logs` | Yes | Lines matching ANDed filters (time / level / keyword). |
-| `summarize_errors` | Yes | Deterministic ERROR/FATAL grouping and ranking ([`internal/errsummary`](internal/errsummary/)). |
-| `group_by_field` | Yes | Group lines by a JSON field (`trace_id`, `request_id`, or custom key). |
-| `correlate_events` | Yes | Timeline of lines matching an exact field value. |
-| `detect_anomalies` | Yes | Segment-level error spikes and repeated-error bursts ([`internal/loganalysis`](internal/loganalysis/)). |
-| `extract_trace_flow` | Yes | Ordered steps for a single trace id. |
-| `incident_summary` | No | Validates merged structured output from other tools; returns a brief for downstream LLMs. |
-| `explain_log_pattern` | No | Interprets one structured error group or burst; **no** log I/O. |
-
-Redaction and limits (`LOG_MCP_SEC_*`, argv allowlists, read-only file access) are documented in [docs/architecture.md](docs/architecture.md#security-limits-log_mcp_sec_).
-
-### Pipelines and parsers
-
-Log lines flow through a **streaming** pipeline ([`internal/pipeline`](internal/pipeline/pipeline.go)): source → parse ([`internal/parse`](internal/parse/) JSON/text/auto) → redaction ([`internal/security`](internal/security/redact.go)) → optional analysis. The design avoids loading entire files into memory before processing.
-
-## Architecture and documentation
-
-| Document | Contents |
-|----------|----------|
-| [docs/architecture.md](docs/architecture.md) | End-to-end design: env vars, sources, security, parsing, normalization, pipeline. |
-| [docs/README.md](docs/README.md) | Index of documentation in this repo. |
-| [CONTRIBUTING.md](CONTRIBUTING.md) | How to propose changes, build, and test. |
-| [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) | Community expectations. |
-| [SECURITY.md](SECURITY.md) | How to report security issues. |
-| [LICENSE](LICENSE) | Apache License 2.0. |
-
-For a concise package map, see the **Layout** table below and the component table in [docs/architecture.md](docs/architecture.md#major-components).
-
-## Layout
+## Repository layout
 
 | Path | Purpose |
 |------|---------|
-| `cmd/log-mcp` | MCP server entrypoint (stdio binary) |
-| `internal/server` | MCP server wiring, JSON-RPC wire types, stdio `Run` |
-| `internal/tools` | Tool registry and tool implementations |
-| `internal/` | Sources, pipeline, security, analysis, helpers |
-| `pkg/` | Library code intended for import by other modules |
-| `docs/` | Project documentation |
-| `test/` | Shared test fixtures and integration helpers |
-| `.github/workflows/` | CI, docs checks, benchmarks, release builds |
+| `cmd/log-mcp` | MCP server entrypoint (stdio binary). |
+| `internal/server` | MCP session wiring, `Run`. |
+| `internal/tools` | Tool registry and implementations. |
+| `internal/source`, `internal/pipeline`, `internal/parse`, `internal/security`, … | Sources, streaming pipeline, parsers, redaction, analysis. |
+| `docs/` | Architecture, testing/CI, doc index. |
+| `test/` | Pointers to shared fixtures (see [`test/fixtures/logs/README.md`](test/fixtures/logs/README.md)). |
+| `.github/workflows/` | CI, docs checks, benchmarks, release builds. |
 
 ## Requirements
 
-- **Go 1.25.8** or newer (matches [`go.mod`](go.mod); `setup-go` in CI uses `go-version-file`).
+- **Go** version matching [`go.mod`](go.mod) (CI uses `actions/setup-go` with `go-version-file: go.mod`).
 
 ## Build
 
@@ -88,11 +52,11 @@ For a concise package map, see the **Layout** table below and the component tabl
 go build -o log-mcp ./cmd/log-mcp
 ```
 
-Run under any MCP-compatible host that can spawn the binary with stdio connected and the desired environment variables set for your log backends.
+Configure the environment for your backends (see [architecture.md](docs/architecture.md)), then run under any MCP host that connects stdio to the process.
 
 ## Continuous integration
 
-Pull requests to `main` / `develop` run Go vet, tests, `golangci-lint`, `gosec`, `govulncheck`, documentation lint + link checks, and (on relevant branches) benchmarks. See [`.github/workflows/`](.github/workflows/).
+Pull requests to `main` / `develop` run **go mod tidy** (clean tree check), **go vet**, tests, **golangci-lint**, **gosec**, **govulncheck**, documentation lint and link checks, and benchmarks on selected branches. Details: [**docs/testing-and-ci.md**](docs/testing-and-ci.md).
 
 ## Community
 

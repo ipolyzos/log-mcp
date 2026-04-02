@@ -1,6 +1,6 @@
 # Architecture
 
-This document describes how **log-mcp** is structured today and how log data flows through the system. For repository layout and build instructions, see the root [README.md](../README.md).
+This document describes how **log-mcp** is structured today and how log data flows through the system. For repository layout and build instructions, see the root [README.md](../README.md). For tests, CI, and fixtures, see [testing-and-ci.md](testing-and-ci.md).
 
 ## Table of contents
 
@@ -30,7 +30,7 @@ This document describes how **log-mcp** is structured today and how log data flo
 | Log sources | `internal/source` | Pluggable backends that list streams and read them as lines. |
 | Log parsing | `internal/parse` | JSON and text line parsers; shared `ParsedLine` (timestamp, level, message, fields). |
 | Normalization | `internal/normalize` | Deterministic masking (UUID, IP, tokens) and normalization (timestamps, dynamic IDs). |
-| Processing pipeline | `internal/pipeline` | Bounded-channel stream: source → parse → normalize → analyze (no full-buffering of the log). |
+| Processing pipeline | `internal/pipeline` | Bounded-channel stream: source → parse → redact ([`security.RedactLine`](../internal/security/redact.go) applies [`normalize.DefaultConfig`](../internal/normalize/config.go)) → optional analyze (no full-buffering of the log). |
 | Log query helpers | `internal/logtool` | Shared filter + collect over the pipeline (time, level, keyword). |
 | Error summarization | `internal/errsummary` | Deterministic ERROR-level grouping, frequency ranking, per-service counts (no LLM). |
 | Log correlation | `internal/logcorr` | Field-based grouping and timelines (`trace_id`, `request_id`, custom JSON keys). |
@@ -41,7 +41,7 @@ This document describes how **log-mcp** is structured today and how log data flo
 
 ## MCP layer (stdio)
 
-The server uses the official Go SDK (`github.com/modelcontextprotocol/go-sdk/mcp`) with `StdioTransport`: **stdout** carries MCP messages; **stderr** is reserved for diagnostics (once logging is added). Wire envelopes are JSON-RPC 2.0; see `internal/server` for typed request/response structs used in tests.
+The server uses the official Go SDK (`github.com/modelcontextprotocol/go-sdk/mcp`) with `StdioTransport`: **stdout** carries MCP messages; **stderr** is reserved for process diagnostics (for example `log` from `cmd/log-mcp` on fatal errors). Wire envelopes are JSON-RPC 2.0; see `internal/server` for typed request/response structs used in tests.
 
 ### Log MCP tools
 
@@ -136,6 +136,8 @@ Package [`internal/parse`](../internal/parse/parsed.go) turns a single line into
 **`TextParser`** uses lightweight regex heuristics: optional RFC3339 prefix, `[LEVEL]` or bare level token, then `key=value` pairs stripped from the message body.
 
 **`AutoParser`** tries JSON when the trimmed line starts with `{`; invalid JSON falls back to `TextParser` so mixed log files still yield a useful `ParsedLine`.
+
+**Regression fixtures:** [`internal/parse/testdata/fixtures/`](../internal/parse/testdata/fixtures/) holds synthetic one-line samples (platform-style logs, polyglot framework stacks, and a shared JSON “golden stack” schema). They are embedded in tests via [`fixtures_test.go`](../internal/parse/fixtures_test.go); see the fixtures [README](../internal/parse/testdata/fixtures/README.md) for the file index and documentation links.
 
 ## Log normalization
 
