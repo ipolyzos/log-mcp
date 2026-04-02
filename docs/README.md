@@ -8,7 +8,7 @@ differ, treat **`docs/`** as the source of truth for behavior and configuration.
 
 | Document | Contents |
 |----------|----------|
-| [architecture.md](architecture.md) | Goals, package map, MCP stdio, **log sources** (file, k8s, docker, CF), **security limits** (`LOG_MCP_SEC_*`), parsing, normalization, streaming pipeline. |
+| [architecture.md](architecture.md) | Goals, package map, MCP stdio, **log sources** (file, **pipe fd**, k8s, docker, CF), **security limits** (`LOG_MCP_SEC_*`), parsing, normalization, streaming pipeline. |
 | [tools.md](tools.md) | **Every MCP tool**: parameters, result JSON, defaults, caps. |
 | [client-contract.md](client-contract.md) | Stdin/stdout rules, how tool errors surface (MCP + Go SDK), typical message patterns. |
 | [usage.md](usage.md) | Build, environment variables, host config patterns, common workflows. |
