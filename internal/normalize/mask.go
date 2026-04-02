@@ -68,7 +68,7 @@ func maskTokens(s string) string {
 	s = apiishRE.ReplaceAllStringFunc(s, func(m string) string {
 		eq := strings.IndexByte(m, '=')
 		co := strings.IndexByte(m, ':')
-		sep := -1
+		var sep int
 		switch {
 		case eq >= 0 && (co < 0 || eq < co):
 			sep = eq
