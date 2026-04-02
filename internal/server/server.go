@@ -43,19 +43,56 @@ func NewWithConfig(cfg Config) *mcp.Server {
 func logSourceFromEnv() source.LogSource {
 	fileSrc := fileSourceFromEnv()
 	k8sSrc := k8sSourceFromEnv()
-	switch {
-	case fileSrc != nil && k8sSrc != nil:
-		multi, err := source.NewMultiLogSource("combined", fileSrc, k8sSrc)
-		if err != nil {
-			log.Printf("log-mcp: combined log source: %v", err)
+	dockerSrc := dockerSourceFromEnv()
+	cfSrc := cfSourceFromEnv()
+
+	n := 0
+	if fileSrc != nil {
+		n++
+	}
+	if k8sSrc != nil {
+		n++
+	}
+	if dockerSrc != nil {
+		n++
+	}
+	if cfSrc != nil {
+		n++
+	}
+	if n == 0 {
+		return nil
+	}
+	if n == 1 {
+		switch {
+		case fileSrc != nil:
 			return fileSrc
+		case k8sSrc != nil:
+			return k8sSrc
+		case dockerSrc != nil:
+			return dockerSrc
+		default:
+			return cfSrc
 		}
-		return multi
-	case k8sSrc != nil:
-		return k8sSrc
-	default:
+	}
+	multi, err := source.NewMultiLogSource("combined", fileSrc, k8sSrc, dockerSrc, cfSrc)
+	if err != nil {
+		log.Printf("log-mcp: combined log source: %v", err)
+		return firstNonNilLogSource(fileSrc, k8sSrc, dockerSrc, cfSrc)
+	}
+	return multi
+}
+
+func firstNonNilLogSource(fileSrc *source.FileLogSource, k8sSrc *source.K8sLogSource, dockerSrc *source.DockerLogSource, cfSrc *source.CFLogSource) source.LogSource {
+	if fileSrc != nil {
 		return fileSrc
 	}
+	if k8sSrc != nil {
+		return k8sSrc
+	}
+	if dockerSrc != nil {
+		return dockerSrc
+	}
+	return cfSrc
 }
 
 func fileSourceFromEnv() *source.FileLogSource {
@@ -106,6 +143,58 @@ func k8sSourceFromEnv() *source.K8sLogSource {
 		return nil
 	}
 	return k
+}
+
+func dockerSourceFromEnv() *source.DockerLogSource {
+	raw := strings.TrimSpace(os.Getenv("LOG_MCP_DOCKER_CONTAINERS"))
+	if raw == "" {
+		return nil
+	}
+	var names []string
+	for _, part := range strings.Split(raw, ",") {
+		part = strings.TrimSpace(part)
+		if part != "" {
+			names = append(names, part)
+		}
+	}
+	if len(names) == 0 {
+		return nil
+	}
+	runner := &source.ExecDockerRunner{
+		Path: strings.TrimSpace(os.Getenv("LOG_MCP_DOCKER_DOCKER")),
+	}
+	d, err := source.NewDockerLogSource("docker", names, runner)
+	if err != nil {
+		log.Printf("log-mcp: ignoring LOG_MCP_DOCKER_CONTAINERS: %v", err)
+		return nil
+	}
+	return d
+}
+
+func cfSourceFromEnv() *source.CFLogSource {
+	raw := strings.TrimSpace(os.Getenv("LOG_MCP_CF_APPS"))
+	if raw == "" {
+		return nil
+	}
+	var apps []string
+	for _, part := range strings.Split(raw, ",") {
+		part = strings.TrimSpace(part)
+		if part != "" {
+			apps = append(apps, part)
+		}
+	}
+	if len(apps) == 0 {
+		return nil
+	}
+	runner := &source.ExecCFRunner{
+		Path: strings.TrimSpace(os.Getenv("LOG_MCP_CF_CLI")),
+	}
+	c, err := source.NewCFLogSource("cloudfoundry", apps, runner)
+	if err != nil {
+		log.Printf("log-mcp: ignoring LOG_MCP_CF_APPS: %v", err)
+		return nil
+	}
+	return c
 }
 
 // Run serves MCP over stdin/stdout until the client disconnects or ctx is done.
