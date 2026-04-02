@@ -38,6 +38,7 @@ func NewPipeLogSourceFromFD(name string, fd int) (*PipeLogSource, error) {
 	return &PipeLogSource{
 		name: name,
 		openRead: func() (io.ReadCloser, error) {
+			// #nosec G115 -- fd validated above to [3, maxPipeFD]; OS handle fits uintptr on supported platforms
 			f := os.NewFile(uintptr(fd), "pipe")
 			if f == nil {
 				return nil, fmt.Errorf("source: invalid pipe fd %d", fd)
