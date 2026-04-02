@@ -11,6 +11,12 @@ reporting) stays in the repo root; this file focuses on **code and docs**.
 - Open PRs targeting **`develop`** unless maintainers say otherwise.
 - Keep commits focused; merge when **PR Check** is green.
 
+## AI / agent IDE files
+
+Do **not** add Cursor, Copilot, or other assistant config to the repo (see
+[CONTRIBUTING.md](../CONTRIBUTING.md) and [`.gitignore`](../.gitignore)). CI rejects
+tracked paths under those patterns.
+
 ## Local checks
 
 Before pushing:
@@ -51,6 +57,7 @@ When you change tools, env vars, security limits, or pipeline semantics, update:
 
 | Change touches | Update |
 |----------------|--------|
+| AI/IDE ignore list or CI guard | [`.gitignore`](../.gitignore), [`.github/scripts/check-no-ai-agent-paths.sh`](../.github/scripts/check-no-ai-agent-paths.sh), [CONTRIBUTING.md](../CONTRIBUTING.md) |
 | Tool params / JSON results | [tools.md](tools.md) |
 | Error shapes / transport expectations | [client-contract.md](client-contract.md) |
 | End-to-end flow, sources, limits | [architecture.md](architecture.md) |
