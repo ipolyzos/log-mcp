@@ -20,6 +20,7 @@ This document describes how **log-mcp** is structured today and how log data flo
 | Processing pipeline | `internal/pipeline` | Bounded-channel stream: source → parse → normalize → analyze (no full-buffering of the log). |
 | Log query helpers | `internal/logtool` | Shared filter + collect over the pipeline (time, level, keyword). |
 | Error summarization | `internal/errsummary` | Deterministic ERROR-level grouping, frequency ranking, per-service counts (no LLM). |
+| Log correlation | `internal/logcorr` | Field-based grouping and timelines (`trace_id`, `request_id`, custom JSON keys). |
 | Build metadata | `internal/buildinfo` | Static name/version for MCP `Implementation` and `version_info`. |
 
 ## MCP layer (stdio)
@@ -34,6 +35,8 @@ When **`LOG_MCP_ROOT`** is set to one or more filesystem roots (same separator a
 - **`search_logs`** — requires `keyword`; optional time and level filters; caps matches with `max_matches`.
 - **`filter_logs`** — requires at least one of `since`, `until`, `level`, or `keyword`; optional `max_lines`.
 - **`summarize_errors`** — scans up to `max_scan_lines` (default 20000), keeps ERROR/FATAL/CRITICAL-style levels, groups lines by a stable fingerprint ([`errsummary`](../internal/errsummary/summary.go): redaction + normalized message and error-related JSON fields), sorts groups by **count descending** then fingerprint ascending, and reports **by_service** using `service` / `app` / `logger` / … fields or the log file basename.
+- **`group_by_field`** — scans a capped prefix of the stream, groups lines that contain a JSON field. Logical names **`trace_id`** and **`request_id`** resolve common aliases (`traceId`, `x-trace-id`, `req_id`, `x-request-id`, …); any other `field` is matched case-insensitively on keys. Lines without the field are skipped; groups are ranked by **count descending**.
+- **`correlate_events`** — returns all lines in the scan window whose field value **exactly** matches `value`, ordered by timestamp then line number (for timelines along one trace or request).
 
 Outputs are **redacted** via [`internal/pipeline`](../internal/pipeline/pipeline.go) and [`normalize.Apply`](../internal/normalize/normalize.go). For tests or custom deployments, [`NewWithConfig`](../internal/server/server.go) accepts an explicit [`LogSource`](../internal/source/source.go).
 

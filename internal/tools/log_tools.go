@@ -88,6 +88,7 @@ func RegisterLogTools(src source.LogSource) Installer {
 			Description: "Return log lines matching at least one filter: time range (since/until), level, and/or keyword. All conditions are ANDed. Lines are redacted.",
 		}, filterLogsHandler(src))
 		registerSummarizeErrors(s, src)
+		registerCorrelationTools(s, src)
 	}
 }
 
