@@ -22,6 +22,7 @@ This document describes how **log-mcp** is structured today and how log data flo
 | Error summarization | `internal/errsummary` | Deterministic ERROR-level grouping, frequency ranking, per-service counts (no LLM). |
 | Log correlation | `internal/logcorr` | Field-based grouping and timelines (`trace_id`, `request_id`, custom JSON keys). |
 | Log analysis | `internal/loganalysis` | Segment error-rate spikes, repeated-error bursts, ordered trace flow steps. |
+| LLM helpers | `internal/llmtools` | Deterministic briefs from structured tool JSON only (no log reads). |
 | Security | `internal/security` | CLI argv allowlists, read-only file checks, mandatory redaction entrypoint, env-driven I/O caps. |
 | Build metadata | `internal/buildinfo` | Static name/version for MCP `Implementation` and `version_info`. |
 
@@ -49,6 +50,8 @@ Tools apply to any configured backend the same way. When nothing is configured, 
 - **`correlate_events`** — returns all lines in the scan window whose field value **exactly** matches `value`, ordered by timestamp then line number (for timelines along one trace or request).
 - **`detect_anomalies`** — scans redacted logs via [`loganalysis.DetectAnomalies`](../internal/loganalysis/anomaly.go): splits the stream into equal line-count segments, flags segments whose ERROR/FATAL/CRITICAL counts exceed the cross-segment mean by a configurable z-score, and lists highly repeated identical ERROR lines (FNV-1a hash of redacted text). Optional `segment_count`, `z_score_threshold`, `min_repeat_errors`.
 - **`extract_trace_flow`** — builds an ordered list of steps for one `trace_id` value (default logical field `trace_id`) via [`loganalysis.ExtractTraceFlow`](../internal/loganalysis/trace_flow.go): timestamps, `service` / `span_id` when present in JSON fields, level, message, and redacted line text.
+- **`incident_summary`** — accepts **`structured_summary`** only: a JSON object pasted from **`summarize_errors`** and/or **`detect_anomalies`** (merged keys allowed). Validates shape and size ([`llmtools.ValidateStructuredSummary`](../internal/llmtools/summary.go)), rejects **`read_logs`**-style `lines` payloads without summary fields. Returns deterministic headline/bullets for downstream LLMs; **does not read** `LogSource`.
+- **`explain_log_pattern`** — accepts exactly one of **`error_group`** (one `groups[]` element) or **`repeated_burst`** (one `repeated_errors[]` entry). Returns deterministic interpretation hints ([`llmtools`](../internal/llmtools/pattern.go)); **no log access**.
 
 Outputs are **redacted** via [`internal/pipeline`](../internal/pipeline/pipeline.go) using [`security.RedactLine`](../internal/security/redact.go) (canonical [`normalize.DefaultConfig`](../internal/normalize/config.go); not configurable per tool). For tests or custom deployments, [`NewWithConfig`](../internal/server/server.go) accepts an explicit [`LogSource`](../internal/source/source.go).
 

@@ -47,6 +47,8 @@ func TestServer_LogTools_listedWithDefaults(t *testing.T) {
 		tools.ToolNameCorrelateEvents,
 		tools.ToolNameDetectAnomalies,
 		tools.ToolNameExtractTraceFlow,
+		tools.ToolNameIncidentSummary,
+		tools.ToolNameExplainLogPattern,
 	} {
 		if !slices.Contains(names, want) {
 			t.Fatalf("missing tool %q in %v", want, names)
