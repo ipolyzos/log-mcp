@@ -2,6 +2,19 @@
 
 This document describes how **log-mcp** is structured today and how log data flows through the system. For repository layout and build instructions, see the root [README.md](../README.md).
 
+## Table of contents
+
+- [Goals](#goals)
+- [Major components](#major-components)
+- [MCP layer (stdio)](#mcp-layer-stdio)
+- [Security limits (`LOG_MCP_SEC_*`)](#security-limits-log_mcp_sec_)
+- [Command allowlist and read-only I/O](#command-allowlist-and-read-only-io)
+- [Log source abstraction](#log-source-abstraction)
+- [Log parsing](#log-parsing)
+- [Log normalization](#log-normalization)
+- [Streaming processing pipeline](#streaming-processing-pipeline)
+- [Future direction (not implemented)](#future-direction-not-implemented)
+
 ## Goals
 
 - **Read-only** access to log data: no writes, deletes, or shell execution on behalf of tools.
@@ -119,7 +132,7 @@ Package [`internal/pipeline`](../internal/pipeline/pipeline.go) composes existin
 
 1. **Source** — [`LogSource.Read`](../internal/source/source.go) yields `LogEntry` values on a channel (same contract as today).
 2. **Parser** — each `Raw` line is parsed with a [`LineParser`](../internal/pipeline/pipeline.go) (default [`parse.AutoParser`](../internal/parse/text_parser.go)).
-3. **Normalizer** — [`normalize.Apply`](../internal/normalize/normalize.go) runs on the **original** raw line; the structured view for downstream use is produced by **parsing again** on the redacted string so `Parsed` fields match the masked bytes.
+3. **Redaction** — [`security.RedactLine`](../internal/security/redact.go) runs on the **original** raw line (same masking order as [`normalize.DefaultConfig`](../internal/normalize/config.go)); the structured view for downstream use is produced by **parsing again** on the redacted string so `Parsed` fields match the masked bytes.
 4. **Analyzer** — optional [`Analyzer`](../internal/pipeline/pipeline.go) hook receives [`NormalizedEntry`](../internal/pipeline/pipeline.go) per line (metrics, routing, etc.).
 
 Stages communicate through **Go channels** whose capacity is set by [`Pipeline.ChannelBuffer`](../internal/pipeline/pipeline.go) (default 32). Only a bounded number of in-flight `LogEntry` / intermediate structs exist at once; the implementation does **not** read the whole file into a slice before processing.
