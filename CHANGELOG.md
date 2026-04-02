@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Log tool results** (`read_logs`, `search_logs`, `filter_logs`): optional **`result_hint`** when **`lines`** is empty and the stream was not truncated — **`no_lines_in_stream`** for unfiltered reads, **`no_matching_lines`** when predicates excluded all lines ([internal/tools/log_tools.go](internal/tools/log_tools.go)).
+
 - **`read_logs`** / **`filter_logs`**: optional **`keywords_any`** string array for **OR** substring matching on redacted lines (AND with time/level); mutually exclusive with **`keyword`** in one call; capped at 32 terms × 256 bytes each ([internal/logtool/filter.go](internal/logtool/filter.go), [internal/tools/log_tools.go](internal/tools/log_tools.go)).
 
 - **CRI stdout HTTP 5xx detection** ([internal/parse/text_parser.go](internal/parse/text_parser.go)): infer ERROR for access-log lines without an `HTTP/x.y` token (for example `GET /path 502`) and for structured `status=`, `http_status=`, `status_code=`, `response_status=`, and `resp_status=` fields in the 500–599 range.

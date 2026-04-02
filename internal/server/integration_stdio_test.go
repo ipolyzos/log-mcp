@@ -98,6 +98,9 @@ func TestIntegration_stdioToolsCall_filterLogsFromJSONArgs(t *testing.T) {
 	if len(out.Lines) != 1 {
 		t.Fatalf("want 1 line, got %d: %+v", len(out.Lines), out.Lines)
 	}
+	if out.ResultHint != "" {
+		t.Fatalf("unexpected result_hint: %q", out.ResultHint)
+	}
 	if out.Lines[0].Level != "ERROR" || !strings.Contains(out.Lines[0].Message, "payment") {
 		t.Fatalf("unexpected line: %+v", out.Lines[0])
 	}
@@ -154,6 +157,9 @@ func TestIntegration_stdioToolsCall_readLogsAndMeta(t *testing.T) {
 	if len(readOut.Lines) != 1 {
 		t.Fatalf("read_logs lines: %+v", readOut.Lines)
 	}
+	if readOut.ResultHint != "" {
+		t.Fatalf("unexpected result_hint: %q", readOut.ResultHint)
+	}
 
 	hc, err := session.CallTool(ctx, &mcp.CallToolParams{Name: tools.ToolNameHealthCheck})
 	if err != nil {
@@ -176,6 +182,62 @@ func TestIntegration_stdioToolsCall_readLogsAndMeta(t *testing.T) {
 	}
 	if ver.Name != buildinfo.Name || ver.Version != buildinfo.Version {
 		t.Fatalf("version_info: got %+v want name=%q version=%q", ver, buildinfo.Name, buildinfo.Version)
+	}
+
+	cancel()
+	<-errCh
+}
+
+func TestIntegration_stdio_readLogs_emptyStreamResultHint(t *testing.T) {
+	root := t.TempDir()
+	logPath := filepath.Join(root, "empty.log")
+	if err := os.WriteFile(logPath, []byte(""), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("LOG_MCP_ROOT", root)
+	t.Setenv("LOG_MCP_K8S_NAMESPACES", "")
+	t.Setenv("LOG_MCP_DOCKER_CONTAINERS", "")
+	t.Setenv("LOG_MCP_CF_APPS", "")
+
+	ctx, cancel := context.WithCancel(context.Background())
+	t.Cleanup(cancel)
+
+	srvT, cliT := stdioPairedTransports()
+	srv := New()
+	errCh := make(chan error, 1)
+	runMCPServerStdioLike(ctx, srv, srvT, errCh)
+
+	client := mcp.NewClient(&mcp.Implementation{Name: "stdio-itest", Version: "0"}, nil)
+	session, err := client.Connect(ctx, cliT, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = session.Close() })
+
+	readJSON := fmt.Sprintf(`{"stream_id":%q,"max_lines":10}`, logPath)
+	var readArgs map[string]any
+	if err := json.Unmarshal([]byte(readJSON), &readArgs); err != nil {
+		t.Fatal(err)
+	}
+	readRes, err := session.CallTool(ctx, &mcp.CallToolParams{
+		Name:      tools.ToolNameReadLogs,
+		Arguments: readArgs,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if readRes.IsError {
+		t.Fatalf("read_logs: %+v", readRes)
+	}
+	var readOut tools.LogsToolOutput
+	if err := decodeStructured(readRes, &readOut); err != nil {
+		t.Fatal(err)
+	}
+	if len(readOut.Lines) != 0 {
+		t.Fatalf("expected no lines, got %d", len(readOut.Lines))
+	}
+	if readOut.ResultHint != "no_lines_in_stream" {
+		t.Fatalf("result_hint: got %q", readOut.ResultHint)
 	}
 
 	cancel()
