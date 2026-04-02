@@ -1,0 +1,4 @@
+# Envoy default text log (synthetic).
+# Ref: https://www.envoyproxy.io/docs/envoy/latest/configuration/observability/application_logging
+[2024-06-15T10:49:00.123][info][main] [source/server/server.cc:123] initializing epoch 0 (base id=0, hot restart version=11.234)
+[2024-06-15T10:49:01.456][warning][config] [source/server/listener_manager_impl.cc:456] warning: addition on listener '0.0.0.0_8443'

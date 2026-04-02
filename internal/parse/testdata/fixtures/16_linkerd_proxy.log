@@ -1,0 +1,3 @@
+# Linkerd2 proxy diagnostic line (synthetic, rust-style tracing).
+# Ref: https://linkerd.io/2.14/reference/proxy-log-level/
+[  3123.456789s]  INFO ThreadId(01) inbound: linkerd2_proxy::listen: listening name=10.244.1.2:4143

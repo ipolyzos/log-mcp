@@ -93,6 +93,16 @@ func TestFixtureLogLines_ExpectedSubstrings(t *testing.T) {
 		{"09_nomad.log", 0, "allocations"},
 		{"09_nomad.log", 1, "vault"},
 		{"10_cloudfoundry.log", 0, "shop.example.com"},
+		{"11_aws_lambda.log", 0, "START"},
+		{"11_aws_lambda.log", 1, "Duration"},
+		{"12_aws_cloudfront.log", 0, "cloudfront"},
+		{"13_gcp_load_balancer.log", 0, "api.example"},
+		{"14_azure_function.log", 0, "HttpTrigger"},
+		{"15_envoy_proxy.log", 0, "initializing"},
+		{"15_envoy_proxy.log", 1, "listener"},
+		{"16_linkerd_proxy.log", 0, "linkerd2_proxy"},
+		{"17_kong_proxy.log", 0, "/services"},
+		{"18_haproxy_http.log", 0, "haproxy"},
 	}
 	for _, tc := range cases {
 		t.Run(tc.file+"_"+strconv.Itoa(tc.lineIdx), func(t *testing.T) {
