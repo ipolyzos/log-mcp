@@ -35,7 +35,13 @@ func TestServer_DefaultToolsList(t *testing.T) {
 		names = append(names, tool.Name)
 	}
 	slices.Sort(names)
-	want := []string{tools.ToolNameHealthCheck, tools.ToolNameVersionInfo}
+	want := []string{
+		tools.ToolNameFilterLogs,
+		tools.ToolNameHealthCheck,
+		tools.ToolNameReadLogs,
+		tools.ToolNameSearchLogs,
+		tools.ToolNameVersionInfo,
+	}
 	slices.Sort(want)
 	if !slices.Equal(names, want) {
 		t.Fatalf("tool names: got %v want %v", names, want)
