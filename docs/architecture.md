@@ -18,11 +18,22 @@ This document describes how **log-mcp** is structured today and how log data flo
 | Log parsing | `internal/parse` | JSON and text line parsers; shared `ParsedLine` (timestamp, level, message, fields). |
 | Normalization | `internal/normalize` | Deterministic masking (UUID, IP, tokens) and normalization (timestamps, dynamic IDs). |
 | Processing pipeline | `internal/pipeline` | Bounded-channel stream: source → parse → normalize → analyze (no full-buffering of the log). |
+| Log query helpers | `internal/logtool` | Shared filter + collect over the pipeline (time, level, keyword). |
 | Build metadata | `internal/buildinfo` | Static name/version for MCP `Implementation` and `version_info`. |
 
 ## MCP layer (stdio)
 
 The server uses the official Go SDK (`github.com/modelcontextprotocol/go-sdk/mcp`) with `StdioTransport`: **stdout** carries MCP messages; **stderr** is reserved for diagnostics (once logging is added). Wire envelopes are JSON-RPC 2.0; see `internal/server` for typed request/response structs used in tests.
+
+### Log MCP tools
+
+When **`LOG_MCP_ROOT`** is set to one or more filesystem roots (same separator as the OS `PATH`), [`New`](../internal/server/server.go) builds a [`FileLogSource`](../internal/source/file.go) and registers:
+
+- **`read_logs`** — sequential read with optional `max_lines` and optional filters (`since` / `until` RFC3339, `level`, `keyword`). With no filters, `max_lines` is passed to the source so the tail of the file is not fully scanned.
+- **`search_logs`** — requires `keyword`; optional time and level filters; caps matches with `max_matches`.
+- **`filter_logs`** — requires at least one of `since`, `until`, `level`, or `keyword`; optional `max_lines`.
+
+Outputs are **redacted** via [`internal/pipeline`](../internal/pipeline/pipeline.go) and [`normalize.Apply`](../internal/normalize/normalize.go). For tests or custom deployments, [`NewWithConfig`](../internal/server/server.go) accepts an explicit [`LogSource`](../internal/source/source.go).
 
 ## Log source abstraction
 
@@ -83,6 +94,6 @@ Streaming uses a large `bufio.Reader` buffer and `ReadString('\n')` so individua
 
 ## Future direction (not implemented)
 
-- MCP tools that call `LogSource.List` / `Read` and the streaming pipeline with redaction and rate limits.
+- MCP tool to call `LogSource.List` (stream discovery) and stricter validation of `stream_id` against listed IDs.
 - Additional sources (journald, object storage, Kubernetes API) behind the same `LogSource` interface.
 - Optional tail/follow semantics, nested JSON log models, and richer schema-aware parsers.
