@@ -3,3 +3,6 @@ MD013: false
 MD033: false
 MD041: false
 MD060: false
+# Keep a Changelog: repeated ### Added / ### Changed per version (not duplicates)
+MD024:
+  siblings_only: true
