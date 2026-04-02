@@ -7,9 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **MCP stdio-style integration tests** in [internal/server/integration_stdio_test.go](internal/server/integration_stdio_test.go): JSON-RPC over piped **[`mcp.IOTransport`](https://pkg.go.dev/github.com/modelcontextprotocol/go-sdk/mcp#IOTransport)** (same framing as stdio), temp **`LOG_MCP_ROOT`**, **`filter_logs`** with full JSON arguments (`json.Unmarshal`), plus **`read_logs`**, **`health_check`**, and **`version_info`**.
+
 ### Planned
 
-- Nothing listed yet; see [GitHub issues](https://github.com/ipolyzos/log-mcp/issues).
+- Nothing else listed yet; see [GitHub issues](https://github.com/ipolyzos/log-mcp/issues).
 
 ---
 

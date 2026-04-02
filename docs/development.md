@@ -58,7 +58,7 @@ When you change tools, env vars, security limits, or pipeline semantics, update:
 | Change touches | Update |
 |----------------|--------|
 | AI/IDE ignore list or CI guard | [`.gitignore`](../.gitignore), [`.github/scripts/check-no-ai-agent-paths.sh`](../.github/scripts/check-no-ai-agent-paths.sh), [CONTRIBUTING.md](../CONTRIBUTING.md) |
-| Tool params / JSON results | [tools.md](tools.md) |
+| Tool params / JSON results | [tools.md](tools.md); stdio-style black-box coverage in [`integration_stdio_test.go`](../internal/server/integration_stdio_test.go) |
 | Error shapes / transport expectations | [client-contract.md](client-contract.md) |
 | End-to-end flow, sources, limits | [architecture.md](architecture.md) |
 | How to run / configure hosts | [usage.md](usage.md) |
