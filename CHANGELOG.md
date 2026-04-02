@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Tests
 
 - Stdio integration coverage for **`filter_logs`** JSON arguments (RFC3339 window and level+keyword AND) against the Kubernetes CRI fixture ([`integration_stdio_test.go`](internal/server/integration_stdio_test.go)).
+- Stdio integration over **all** `internal/parse/testdata/fixtures/*.log`: **`read_logs`**, **`summarize_errors`**, **`detect_anomalies`**, **`search_logs`** per file ([`integration_fixtures_test.go`](internal/server/integration_fixtures_test.go)).
 
 ### Planned
 
