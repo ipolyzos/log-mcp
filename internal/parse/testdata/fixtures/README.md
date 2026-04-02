@@ -25,5 +25,21 @@ systems; formats follow public documentation.
 | `16_linkerd_proxy.log` | [Linkerd proxy log level](https://linkerd.io/2.14/reference/proxy-log-level/) |
 | `17_kong_proxy.log` | [Kong Gateway logging](https://docs.konghq.com/gateway/latest/production/logging/) |
 | `18_haproxy_http.log` | [HAProxy logging](https://docs.haproxy.org/3.0/configuration.html#8.2.4) |
+| `19_kafka.log` | [Kafka broker logging](https://kafka.apache.org/documentation/#brokerconfigs_log.dirs) |
+| `20_rabbitmq.log` | [RabbitMQ logging](https://www.rabbitmq.com/docs/logging) |
+| `21_elasticsearch.log` | [Elastic ECS logging](https://www.elastic.co/guide/en/ecs/current/ecs-log.html) |
+| `22_fluentd.log` | [Fluentd tail input](https://docs.fluentd.org/input/tail) (wrapped line) |
+| `23_logstash.log` | [Logstash logging](https://www.elastic.co/guide/en/logstash/current/logging.html) |
+| `24_prometheus.log` | [Prometheus configuration](https://prometheus.io/docs/prometheus/latest/configuration/configuration/) |
+| `25_grafana.log` | [Grafana configuration / logs](https://grafana.com/docs/grafana/latest/setup-grafana/configure-grafana/#log) |
+| `26_jaeger_span.log` | [Jaeger APIs](https://www.jaegertracing.io/docs/1.57/apis/#json-over-http) (trace JSON) |
+| `27_cassandra.log` | [Cassandra logging](https://cassandra.apache.org/doc/latest/cassandra/managing/operating/logging.html) |
+| `28_dynamodb_app.log` | [DynamoDB errors (app-level)](https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Programming.Errors.html) |
+| `29_s3_server_access.log` | [S3 server access log format](https://docs.aws.amazon.com/AmazonS3/latest/userguide/LogFormat.html) |
+| `30_rabbitmq_json.log` | [RabbitMQ JSON logging](https://www.rabbitmq.com/docs/logging#json) |
+| `31_gcs_audit.log` | [GCS audit logging](https://cloud.google.com/storage/docs/audit-logging) |
+| `32_azure_blob.log` | [Monitor Azure Blob Storage](https://learn.microsoft.com/en-us/azure/storage/blobs/monitor-blob-storage) |
+| `33_cortex_ingester.log` | [Grafana Mimir production checklist](https://grafana.com/docs/mimir/latest/operators-guide/run-production-environment-with-helm/production-readiness-checklist/) (Cortex/Mimir family) |
+| `34_gcp_cloud_functions.log` | [Cloud Functions logging](https://cloud.google.com/functions/docs/configuring/logging) |
 
-More files may be added in later commits; extend [`fixtures_test.go`](../../fixtures_test.go).
+Extend [`fixtures_test.go`](../../fixtures_test.go) when adding files.

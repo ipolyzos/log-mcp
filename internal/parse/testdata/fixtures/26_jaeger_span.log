@@ -1,0 +1,3 @@
+# OpenTelemetry / Jaeger-style span JSON (synthetic trace object on one line).
+# Ref: https://www.jaegertracing.io/docs/1.57/apis/#json-over-http
+{"traceId":"4bf92f3577b34da6a3ce929d0e0e4736","spanId":"00f067aa0ba902b7","name":"GET /dispatch","startTimeUnixNano":"1718456400000000000","duration":"152000"}

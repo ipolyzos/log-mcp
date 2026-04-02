@@ -1,0 +1,3 @@
+# Application-level AWS SDK log (DynamoDB PutItem; synthetic, not DynamoDB server binary logs).
+# Ref: https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Programming.Errors.html
+{"level":"INFO","message":"PutItem completed","tableName":"Sessions","consumedCapacity":2.5,"requestId":"QMENUQDB860SGMO"}

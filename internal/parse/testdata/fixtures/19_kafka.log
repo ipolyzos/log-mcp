@@ -1,0 +1,4 @@
+# Apache Kafka broker log (log4j-style; synthetic).
+# Ref: https://kafka.apache.org/documentation/#brokerconfigs_log.dirs
+[2024-06-15 10:53:00,123] INFO [Broker id=1] AddPartitionsToTxn received: transactionalId=tx-1 from coordinator 1 (kafka.coordinator.transaction.TransactionCoordinator)
+[2024-06-15 10:53:01,456] WARN [ReplicaFetcher replica=1] Error in fetch for partition orders-0 (kafka.server.ReplicaFetcherThread)

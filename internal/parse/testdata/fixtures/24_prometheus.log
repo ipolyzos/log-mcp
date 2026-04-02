@@ -1,0 +1,4 @@
+# Prometheus server log (common key=value format; synthetic).
+# Ref: https://prometheus.io/docs/prometheus/latest/configuration/configuration/
+ts=2024-06-15T10:58:00.123Z caller=main.go:999 level=info component=discovery msg="Discovery manager started" config=kubernetes
+ts=2024-06-15T10:58:01.456Z caller=scrape.go:1234 level=warn component="scrape manager" msg="Error scraping target" err="context deadline exceeded"

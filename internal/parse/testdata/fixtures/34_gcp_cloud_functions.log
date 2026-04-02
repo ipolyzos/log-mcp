@@ -1,0 +1,3 @@
+# Google Cloud Functions / Cloud Run style JSON log (synthetic).
+# Ref: https://cloud.google.com/functions/docs/configuring/logging
+{"severity":"INFO","timestamp":"2024-06-15T11:06:00.123456Z","message":"Function execution started","labels":{"execution_id":"exec-abc","function_name":"helloWorld"}}

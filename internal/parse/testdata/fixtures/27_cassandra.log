@@ -1,0 +1,4 @@
+# Apache Cassandra system.log style (synthetic).
+# Ref: https://cassandra.apache.org/doc/latest/cassandra/managing/operating/logging.html
+INFO  [CompactionExecutor:1] 2024-06-15 11:00:00,123 ColumnFamilyStore.java:200 - Compacting (bf0d6320-3b4e-11ef-8c2d-abcdef012345) orders.orders
+WARN  [Native-Transport-Requests-1] 2024-06-15 11:00:01,456 ReadCommand.java:456 - Read 512 live rows and 0 tombstone cells for query SELECT * FROM events

@@ -1,0 +1,3 @@
+# Fluent Bit / kubernetes tail wrapper JSON (same shape as docker json-file; synthetic).
+# Ref: https://docs.fluentd.org/input/tail
+{"log":"2024-06-15T10:56:00.000000000Z stdout F payment-service: charge succeeded order_id=ord_123\\n","stream":"stdout","time":"2024-06-15T10:56:00.000000000Z"}

@@ -1,0 +1,3 @@
+# Google Cloud Storage JSON audit-style entry (synthetic subset).
+# Ref: https://cloud.google.com/storage/docs/audit-logging
+{"protoPayload":{"methodName":"storage.objects.get","resourceName":"projects/_/buckets/my-bucket/objects/report.csv"},"severity":"INFO","timestamp":"2024-06-15T11:03:00.123456Z"}

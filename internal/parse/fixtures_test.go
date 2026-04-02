@@ -103,6 +103,26 @@ func TestFixtureLogLines_ExpectedSubstrings(t *testing.T) {
 		{"16_linkerd_proxy.log", 0, "linkerd2_proxy"},
 		{"17_kong_proxy.log", 0, "/services"},
 		{"18_haproxy_http.log", 0, "haproxy"},
+		{"19_kafka.log", 0, "AddPartitions"},
+		{"19_kafka.log", 1, "ReplicaFetcher"},
+		{"20_rabbitmq.log", 0, "AMQP"},
+		{"20_rabbitmq.log", 1, "precondition"},
+		{"21_elasticsearch.log", 0, "watermark"},
+		{"22_fluentd.log", 0, "payment"},
+		{"23_logstash.log", 0, "index"},
+		{"24_prometheus.log", 0, "Discovery"},
+		{"24_prometheus.log", 1, "deadline"},
+		{"25_grafana.log", 0, "Listen"},
+		{"26_jaeger_span.log", 0, "dispatch"},
+		{"27_cassandra.log", 0, "Compacting"},
+		{"27_cassandra.log", 1, "tombstone"},
+		{"28_dynamodb_app.log", 0, "Sessions"},
+		{"29_s3_server_access.log", 0, "REST.GET.OBJECT"},
+		{"30_rabbitmq_json.log", 0, "Deprecated"},
+		{"31_gcs_audit.log", 0, "storage.objects.get"},
+		{"32_azure_blob.log", 0, "blob.core"},
+		{"33_cortex_ingester.log", 0, "ingester"},
+		{"34_gcp_cloud_functions.log", 0, "helloWorld"},
 	}
 	for _, tc := range cases {
 		t.Run(tc.file+"_"+strconv.Itoa(tc.lineIdx), func(t *testing.T) {
@@ -113,17 +133,14 @@ func TestFixtureLogLines_ExpectedSubstrings(t *testing.T) {
 				t.Fatal(err)
 			}
 			msg := got.Message
-			if msg == "" {
-				// JSON lines may stash payload only in Fields; stringify for search.
-				var b strings.Builder
-				b.WriteString(msg)
-				for _, v := range got.Fields {
-					b.WriteString(v)
-				}
-				msg = b.String()
+			var b strings.Builder
+			b.WriteString(msg)
+			for _, v := range got.Fields {
+				b.WriteString(v)
 			}
-			if !strings.Contains(msg, tc.substr) {
-				t.Fatalf("want substring %q in synthesized message/fields, got message=%q fields=%v",
+			combined := b.String()
+			if !strings.Contains(combined, tc.substr) {
+				t.Fatalf("want substring %q in message+fields, got message=%q fields=%v",
 					tc.substr, got.Message, got.Fields)
 			}
 		})
