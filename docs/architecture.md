@@ -45,7 +45,26 @@ The server uses the official Go SDK (`github.com/modelcontextprotocol/go-sdk/mcp
 
 ### Log MCP tools
 
-[`New`](../internal/server/server.go) builds log sources from the environment and registers tools when at least one source is configured:
+[`New`](../internal/server/server.go) builds log sources from the environment. Tools are always registered in a fixed order (health, version, log family, LLM helpers); log-backed tools return a configuration error if no source is available.
+
+**Tool catalog (quick reference):**
+
+| Tool | Needs `LogSource`? | Summary |
+|------|-------------------|---------|
+| `health_check` | No | Process responds to MCP tool calls. |
+| `version_info` | No | [`buildinfo`](../internal/buildinfo/buildinfo.go) name/version. |
+| `read_logs` | Yes | Bounded sequential read + optional filters; redacted lines. |
+| `search_logs` | Yes | Keyword search with optional filters. |
+| `filter_logs` | Yes | ANDed time/level/keyword filters. |
+| `summarize_errors` | Yes | Deterministic ERROR grouping ([`errsummary`](../internal/errsummary/summary.go)). |
+| `group_by_field` | Yes | JSON field grouping (`trace_id` / `request_id` aliases supported). |
+| `correlate_events` | Yes | All lines matching one field value, time-ordered. |
+| `detect_anomalies` | Yes | Segment z-scores + repeated-error bursts ([`loganalysis`](../internal/loganalysis/anomaly.go)). |
+| `extract_trace_flow` | Yes | Ordered trace steps for one id. |
+| `incident_summary` | No | Structured JSON in → brief out ([`llmtools`](../internal/llmtools/summary.go)); no log read. |
+| `explain_log_pattern` | No | One error group or burst → hints ([`llmtools`](../internal/llmtools/pattern.go)); no log read. |
+
+Environment variables that enable backends:
 
 - **`LOG_MCP_ROOT`** — filesystem roots (same separator as the OS `PATH`); see [File-backed source](#file-backed-source).
 - **`LOG_MCP_K8S_NAMESPACES`** — comma-separated **allowlist** of Kubernetes namespace names (DNS labels only). Enables [`K8sLogSource`](../internal/source/k8s.go): only **`kubectl get pods -n <ns>`** and **`kubectl logs <pod> -n <ns>`** are run, with fixed argument shapes (no shell). Optional **`LOG_MCP_K8S_KUBECTL`** overrides the kubectl binary. Stream IDs are **`k8s://namespace/pod`** or **`k8s://namespace/pod/container`**.
