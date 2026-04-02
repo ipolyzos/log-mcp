@@ -1,4 +1,4 @@
-// Package pipeline wires [source.LogSource] reads through parse, normalize, and
+// Package pipeline wires [source.LogSource] reads through parse, redaction, and
 // analyze stages using bounded Go channels so lines stream through without
 // accumulating the full log in memory.
 package pipeline
@@ -6,8 +6,8 @@ package pipeline
 import (
 	"context"
 
-	"github.com/ipolyzos/log-mcp/internal/normalize"
 	"github.com/ipolyzos/log-mcp/internal/parse"
+	"github.com/ipolyzos/log-mcp/internal/security"
 	"github.com/ipolyzos/log-mcp/internal/source"
 )
 
@@ -54,13 +54,12 @@ type Result struct {
 }
 
 // Pipeline streams log lines from a [source.LogSource] through parser →
-// normalizer → analyzer. Channel buffers are bounded ([ChannelBuffer]); each
+// [security.RedactLine] → analyzer. Channel buffers are bounded ([ChannelBuffer]); each
 // stage holds at most a few in-flight values per connection.
 type Pipeline struct {
 	Source   source.LogSource
 	Query    source.Query
 	Parser   LineParser
-	Config   normalize.Config
 	Analyzer Analyzer
 	// ChannelBuffer is the per-stage channel capacity; zero or negative defaults to 32.
 	ChannelBuffer int
@@ -83,7 +82,6 @@ func (p *Pipeline) Run(ctx context.Context) (<-chan Result, error) {
 	if parser == nil {
 		parser = parse.AutoParser{}
 	}
-	cfg := p.Config
 	analyzer := p.Analyzer
 
 	chParsed := make(chan ParsedEntry, buf)
@@ -106,7 +104,7 @@ func (p *Pipeline) Run(ctx context.Context) (<-chan Result, error) {
 	go func() {
 		defer close(chNorm)
 		for pe := range chParsed {
-			red := normalize.Apply(pe.Raw, cfg)
+			red := security.RedactLine(pe.Raw)
 			safeParsed, _ := parser.Parse(red)
 			chNorm <- NormalizedEntry{
 				LineNumber:    pe.LineNumber,

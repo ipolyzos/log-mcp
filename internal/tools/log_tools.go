@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/ipolyzos/log-mcp/internal/logtool"
+	"github.com/ipolyzos/log-mcp/internal/security"
 	"github.com/ipolyzos/log-mcp/internal/source"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
@@ -19,10 +20,9 @@ const (
 )
 
 const (
-	defaultReadMax    int64 = 500
-	defaultSearchMax  int64 = 500
-	defaultFilterMax  int64 = 500
-	maxOutputLinesCap int64 = 10_000
+	defaultReadMax   int64 = 500
+	defaultSearchMax int64 = 500
+	defaultFilterMax int64 = 500
 )
 
 // readLogsInput is the payload for read_logs.
@@ -196,8 +196,9 @@ func clampMax(n, def int64) int64 {
 	if n <= 0 {
 		n = def
 	}
-	if n > maxOutputLinesCap {
-		n = maxOutputLinesCap
+	capN := security.LimitsFromEnv().MaxToolOutputLines
+	if n > capN {
+		n = capN
 	}
 	return n
 }

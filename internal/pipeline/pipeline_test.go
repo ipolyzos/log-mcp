@@ -11,7 +11,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ipolyzos/log-mcp/internal/normalize"
 	"github.com/ipolyzos/log-mcp/internal/source"
 )
 
@@ -82,7 +81,6 @@ func TestPipeline_orderAndRedaction(t *testing.T) {
 	p := &Pipeline{
 		Source:        fs,
 		Query:         source.Query{StreamID: path, MaxLines: 10},
-		Config:        normalize.DefaultConfig(),
 		Analyzer:      an,
 		ChannelBuffer: 2,
 	}
@@ -131,7 +129,6 @@ func TestPipeline_highVolumeStreaming(t *testing.T) {
 	p := &Pipeline{
 		Source:        src,
 		Query:         source.Query{StreamID: "x"},
-		Config:        normalize.DefaultConfig(),
 		Analyzer:      an,
 		ChannelBuffer: 4,
 	}
@@ -161,7 +158,6 @@ func TestPipeline_contextCancelStopsSource(t *testing.T) {
 	p := &Pipeline{
 		Source:        src,
 		Query:         source.Query{StreamID: "x"},
-		Config:        normalize.DefaultConfig(),
 		ChannelBuffer: 2,
 	}
 	out, err := p.Run(ctx)

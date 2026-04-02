@@ -4,7 +4,6 @@ import (
 	"context"
 	"time"
 
-	"github.com/ipolyzos/log-mcp/internal/normalize"
 	"github.com/ipolyzos/log-mcp/internal/pipeline"
 	"github.com/ipolyzos/log-mcp/internal/source"
 )
@@ -28,10 +27,10 @@ func Collect(ctx context.Context, src source.LogSource, q source.Query, f Filter
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
+	EnrichQuery(&q)
 	pl := &pipeline.Pipeline{
 		Source: src,
 		Query:  q,
-		Config: normalize.DefaultConfig(),
 	}
 	out, err := pl.Run(ctx)
 	if err != nil {

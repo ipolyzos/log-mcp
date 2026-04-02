@@ -8,6 +8,8 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/ipolyzos/log-mcp/internal/security"
 )
 
 // FileLogSource exposes regular files under configured roots as log streams.
@@ -97,7 +99,7 @@ func (f *FileLogSource) Read(ctx context.Context, q Query) (<-chan LogEntry, err
 	if !f.allowedFile(path) {
 		return nil, fmt.Errorf("source: stream %q is not allowed for this file source", q.StreamID)
 	}
-	file, err := os.Open(path)
+	file, err := os.OpenFile(path, os.O_RDONLY, 0)
 	if err != nil {
 		return nil, err
 	}
@@ -108,16 +110,7 @@ func (f *FileLogSource) Read(ctx context.Context, q Query) (<-chan LogEntry, err
 }
 
 func (f *FileLogSource) allowedFile(abs string) bool {
-	fi, err := os.Stat(abs)
-	if err != nil || fi.IsDir() || !fi.Mode().IsRegular() {
-		return false
-	}
-	for _, root := range f.rootsAbs {
-		if rel, err := filepath.Rel(root, abs); err == nil && rel != ".." && !strings.HasPrefix(rel, ".."+string(filepath.Separator)) {
-			return true
-		}
-	}
-	return false
+	return security.FileReadableUnderRoots(f.rootsAbs, abs)
 }
 
 func (f *FileLogSource) streamFile(ctx context.Context, file *os.File, q Query, ch chan<- LogEntry) {
@@ -137,6 +130,7 @@ func (f *FileLogSource) streamFile(ctx context.Context, file *os.File, q Query, 
 		if line != "" {
 			lineNum++
 			raw := strings.TrimSuffix(strings.TrimSuffix(line, "\r\n"), "\n")
+			raw = truncateLineBytes(raw, q.MaxLineBytes)
 			if q.MaxLines > 0 && lineNum > q.MaxLines {
 				return
 			}

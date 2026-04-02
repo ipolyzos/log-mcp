@@ -9,15 +9,16 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/ipolyzos/log-mcp/internal/normalize"
+	"github.com/ipolyzos/log-mcp/internal/logtool"
 	"github.com/ipolyzos/log-mcp/internal/parse"
 	"github.com/ipolyzos/log-mcp/internal/pipeline"
+	"github.com/ipolyzos/log-mcp/internal/security"
 	"github.com/ipolyzos/log-mcp/internal/source"
 )
 
 // Options configures scanning bounds and stream metadata for service fallback.
 type Options struct {
-	// MaxScanLines is passed to [source.Query.MaxLines]; 0 defaults to 20000.
+	// MaxScanLines is passed to [source.Query.MaxLines]; 0 defaults to 20000. Capped by [security.LimitsFromEnv].MaxScanLines.
 	MaxScanLines int64
 	// StreamID is used for output and for filepath.Base fallback service label.
 	StreamID string
@@ -66,21 +67,23 @@ func Summarize(ctx context.Context, src source.LogSource, opts Options) (*Summar
 	if maxScan <= 0 {
 		maxScan = 20000
 	}
-	if maxScan > 100000 {
-		maxScan = 100000
+	lim := security.LimitsFromEnv()
+	if maxScan > lim.MaxScanLines {
+		maxScan = lim.MaxScanLines
 	}
 	streamBase := filepath.Base(strings.TrimSpace(opts.StreamID))
 	if streamBase == "" || streamBase == "." {
 		streamBase = "<stream>"
 	}
 
+	q := source.Query{
+		StreamID: strings.TrimSpace(opts.StreamID),
+		MaxLines: maxScan,
+	}
+	logtool.EnrichQuery(&q)
 	pl := &pipeline.Pipeline{
 		Source: src,
-		Query: source.Query{
-			StreamID: strings.TrimSpace(opts.StreamID),
-			MaxLines: maxScan,
-		},
-		Config: normalize.DefaultConfig(),
+		Query:  q,
 	}
 	out, err := pl.Run(ctx)
 	if err != nil {
@@ -166,7 +169,7 @@ func Fingerprint(rawSignature string) string {
 	if s == "" {
 		s = "<empty>"
 	}
-	s = normalize.Apply(s, normalize.DefaultConfig())
+	s = security.RedactLine(s)
 	s = strings.ToLower(s)
 	return strings.TrimSpace(spaceSquash.ReplaceAllString(s, " "))
 }
@@ -196,7 +199,7 @@ func displayPattern(rawSig string) string {
 	if i := strings.IndexByte(rawSig, '\x1e'); i >= 0 {
 		part = rawSig[:i]
 	}
-	s := normalize.Apply(strings.TrimSpace(part), normalize.DefaultConfig())
+	s := security.RedactLine(strings.TrimSpace(part))
 	if s == "" {
 		s = "<empty>"
 	}

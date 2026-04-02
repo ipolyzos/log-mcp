@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/ipolyzos/log-mcp/internal/pipeline"
+	"github.com/ipolyzos/log-mcp/internal/security"
 	"github.com/ipolyzos/log-mcp/internal/source"
 )
 
@@ -29,7 +30,6 @@ type GroupByFieldResult struct {
 
 const (
 	defaultMaxScanGroup = int64(20000)
-	maxScanCap          = int64(100000)
 	defaultMaxGroups    = 50
 	maxGroupsCap        = 500
 	maxLineNumsPerGroup = 12
@@ -44,8 +44,9 @@ func GroupByField(ctx context.Context, src source.LogSource, streamID, field str
 	if maxScan <= 0 {
 		maxScan = defaultMaxScanGroup
 	}
-	if maxScan > maxScanCap {
-		maxScan = maxScanCap
+	lim := security.LimitsFromEnv()
+	if maxScan > lim.MaxScanLines {
+		maxScan = lim.MaxScanLines
 	}
 	if maxGroups <= 0 {
 		maxGroups = defaultMaxGroups

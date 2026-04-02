@@ -23,6 +23,7 @@ func streamReaderLines(ctx context.Context, r io.ReadCloser, q Query, ch chan<- 
 		if line != "" {
 			lineNum++
 			raw := strings.TrimSuffix(strings.TrimSuffix(line, "\r\n"), "\n")
+			raw = truncateLineBytes(raw, q.MaxLineBytes)
 			if q.MaxLines > 0 && lineNum > q.MaxLines {
 				return
 			}
@@ -44,4 +45,11 @@ func streamReaderLines(ctx context.Context, r io.ReadCloser, q Query, ch chan<- 
 			return
 		}
 	}
+}
+
+func truncateLineBytes(raw string, max int64) string {
+	if max <= 0 || int64(len(raw)) <= max {
+		return raw
+	}
+	return raw[:max]
 }

@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/ipolyzos/log-mcp/internal/errsummary"
+	"github.com/ipolyzos/log-mcp/internal/security"
 	"github.com/ipolyzos/log-mcp/internal/source"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
@@ -13,10 +14,7 @@ import (
 // ToolNameSummarizeErrors is the MCP tools/call name for error summarization.
 const ToolNameSummarizeErrors = "summarize_errors"
 
-const (
-	defaultSummarizeScan int64 = 20000
-	maxSummarizeScanCap  int64 = 100000
-)
+const defaultSummarizeScan int64 = 20000
 
 // summarizeErrorsInput is the payload for summarize_errors.
 type summarizeErrorsInput struct {
@@ -47,7 +45,7 @@ func registerSummarizeErrors(s *mcp.Server, src source.LogSource) {
 		Name: ToolNameSummarizeErrors,
 		Description: "Deterministic error summarization (no LLM): scans redacted log lines, keeps ERROR/FATAL/CRITICAL-level rows, " +
 			"groups by a stable fingerprint (normalized message + error fields), ranks by frequency, and aggregates counts per service " +
-			"(JSON fields service/app/logger/etc., else stream file name). Uses max_scan_lines cap (default 20000, max 100000).",
+			"(JSON fields service/app/logger/etc., else stream file name). Uses max_scan_lines cap (default 20000); upper bound from LOG_MCP_SEC_MAX_SCAN_LINES.",
 	}, summarizeErrorsHandler(src))
 }
 
@@ -64,8 +62,9 @@ func summarizeErrorsHandler(src source.LogSource) func(context.Context, *mcp.Cal
 		if maxScan <= 0 {
 			maxScan = defaultSummarizeScan
 		}
-		if maxScan > maxSummarizeScanCap {
-			maxScan = maxSummarizeScanCap
+		lim := security.LimitsFromEnv()
+		if maxScan > lim.MaxScanLines {
+			maxScan = lim.MaxScanLines
 		}
 		sum, err := errsummary.Summarize(ctx, src, errsummary.Options{
 			StreamID:     sid,
