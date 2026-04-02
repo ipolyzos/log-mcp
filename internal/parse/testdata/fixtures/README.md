@@ -12,7 +12,7 @@ message) for stdout-friendly aggregation.
 
 | File | Format reference |
 |------|------------------|
-| `01_kubernetes_cri.log` | [Kubernetes: logging architecture](https://kubernetes.io/docs/concepts/cluster-administration/logging/) (CRI stdout/stderr line prefix) |
+| `01_kubernetes_cri.log` | [Kubernetes: logging architecture](https://kubernetes.io/docs/concepts/cluster-administration/logging/) (CRI stdout/stderr line prefix). [TextParser](../../text_parser.go) strips the stream (`stdout` / `stderr`) and tag (`F` / `P`), sets field `cri_stream`, and infers **ERROR** on **stderr** when the message matches common failure substrings (e.g. connection refused), and on **stdout** when the line looks like an HTTP access log with status **5xx** (`HTTP/1.x 5xx`). |
 | `02_docker_json_file.log` | [Docker: JSON file logging driver](https://docs.docker.com/engine/logging/drivers/json-file/) |
 | `03_nginx_access.log` | [nginx: ngx_http_log_module](https://nginx.org/en/docs/http/ngx_http_log_module.html) `combined` |
 | `04_apache_access.log` | [Apache: Log files](https://httpd.apache.org/docs/2.4/logs.html) `combined` |

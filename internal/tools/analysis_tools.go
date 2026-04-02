@@ -17,11 +17,12 @@ const ToolNameDetectAnomalies = "detect_anomalies"
 const ToolNameExtractTraceFlow = "extract_trace_flow"
 
 type detectAnomaliesInput struct {
-	StreamID        string   `json:"stream_id" jsonschema:"required log stream id from the configured source"`
-	MaxScanLines    *int64   `json:"max_scan_lines,omitempty" jsonschema:"max lines to scan; omit for default"`
-	SegmentCount    *int64   `json:"segment_count,omitempty" jsonschema:"line segments for error-rate comparison (default 15)"`
-	ZScoreThreshold *float64 `json:"z_score_threshold,omitempty" jsonschema:"min z-score to flag a segment (default 2)"`
-	MinRepeatErrors *int64   `json:"min_repeat_errors,omitempty" jsonschema:"min identical ERROR lines to report as burst (default 6)"`
+	StreamID          string   `json:"stream_id" jsonschema:"required log stream id from the configured source"`
+	MaxScanLines      *int64   `json:"max_scan_lines,omitempty" jsonschema:"max lines to scan; omit for default"`
+	SegmentCount      *int64   `json:"segment_count,omitempty" jsonschema:"line segments for error-rate comparison (default 15)"`
+	ZScoreThreshold   *float64 `json:"z_score_threshold,omitempty" jsonschema:"min z-score to flag a segment (default 2)"`
+	MinRepeatErrors   *int64   `json:"min_repeat_errors,omitempty" jsonschema:"min identical ERROR lines to report as burst (default 6)"`
+	IncludeWarnBursts *bool    `json:"include_warn_bursts,omitempty" jsonschema:"when true, also report repeated identical WARN lines using min_repeat_errors"`
 }
 
 // DetectAnomaliesOutput is the structured result for detect_anomalies.
@@ -29,8 +30,12 @@ type DetectAnomaliesOutput struct {
 	StreamID           string                           `json:"stream_id"`
 	ScannedLines       int64                            `json:"scanned_lines"`
 	Truncated          bool                             `json:"truncated"`
+	LowSample          bool                             `json:"low_sample"`
+	SegmentCount       int                              `json:"segment_count"`
+	ActiveSegmentCount int                              `json:"active_segment_count"`
 	LevelSpikeSegments []loganalysis.LevelSpikeSegment  `json:"level_spike_segments"`
 	RepeatedErrors     []loganalysis.RepeatedErrorBurst `json:"repeated_errors"`
+	RepeatedWarnBursts []loganalysis.RepeatedErrorBurst `json:"repeated_warn_bursts,omitempty"`
 }
 
 type extractTraceFlowInput struct {
@@ -57,6 +62,9 @@ func registerAdvancedAnalysis(s *mcp.Server, src source.LogSource) {
 		Description: "Deterministic anomaly hints (no ML): scans redacted logs, splits the stream into equal line-count segments, " +
 			"flags segments where ERROR/FATAL/CRITICAL counts are unusually high vs other segments (z-score), " +
 			"and lists highly repeated identical ERROR lines (fingerprint of redacted text). " +
+			"Optional include_warn_bursts applies the same repeat logic to WARN/WARNING lines. " +
+			"segment_count and active_segment_count describe bucketing (segments with at least one line). " +
+			"When the stream is short vs segment_count or all lines fall in one segment, low_sample is true and level_spike_segments is empty. " +
 			"Respects LOG_MCP_SEC_MAX_SCAN_LINES.",
 	}, detectAnomaliesHandler(src))
 	mcp.AddTool(s, &mcp.Tool{
@@ -88,6 +96,9 @@ func detectAnomaliesHandler(src source.LogSource) func(context.Context, *mcp.Cal
 		if in.MinRepeatErrors != nil && *in.MinRepeatErrors > 0 {
 			opts.MinRepeatErrors = *in.MinRepeatErrors
 		}
+		if in.IncludeWarnBursts != nil && *in.IncludeWarnBursts {
+			opts.IncludeWarnBursts = true
+		}
 		rep, err := loganalysis.DetectAnomalies(ctx, src, sid, opts)
 		if err != nil {
 			return nil, DetectAnomaliesOutput{}, err
@@ -96,8 +107,12 @@ func detectAnomaliesHandler(src source.LogSource) func(context.Context, *mcp.Cal
 			StreamID:           rep.StreamID,
 			ScannedLines:       rep.ScannedLines,
 			Truncated:          rep.Truncated,
+			LowSample:          rep.LowSample,
+			SegmentCount:       rep.SegmentCount,
+			ActiveSegmentCount: rep.ActiveSegmentCount,
 			LevelSpikeSegments: rep.LevelSpikeSegments,
 			RepeatedErrors:     rep.RepeatedErrors,
+			RepeatedWarnBursts: rep.RepeatedWarnBursts,
 		}, nil
 	}
 }

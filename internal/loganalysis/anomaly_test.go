@@ -70,6 +70,12 @@ func TestDetectAnomalies_repeatedErrors(t *testing.T) {
 	if rep.RepeatedErrors[0].Count < 6 {
 		t.Fatalf("count: %d", rep.RepeatedErrors[0].Count)
 	}
+	if !rep.LowSample {
+		t.Fatal("expected low_sample: all lines fall in one segment vs default width")
+	}
+	if len(rep.LevelSpikeSegments) != 0 {
+		t.Fatalf("expected no level spikes when low_sample: %+v", rep.LevelSpikeSegments)
+	}
 }
 
 func TestDetectAnomalies_levelSpike(t *testing.T) {
@@ -98,5 +104,108 @@ func TestDetectAnomalies_levelSpike(t *testing.T) {
 	}
 	if len(rep.LevelSpikeSegments) < 1 {
 		t.Fatalf("expected level spike: spikes=%v repeats=%v", rep.LevelSpikeSegments, rep.RepeatedErrors)
+	}
+	if rep.LowSample {
+		t.Fatalf("did not expect low_sample for multi-segment stream: %+v", rep)
+	}
+}
+
+func TestDetectAnomalies_kubernetesCRI_shapedLines(t *testing.T) {
+	t.Parallel()
+	src := &sliceSource{
+		id: "k",
+		lines: []string{
+			`2024-06-15T10:30:01.123456789Z stdout F GET /healthz HTTP/1.1 200`,
+			`2024-06-15T10:30:02Z stderr F connection refused to redis.cache.svc.cluster.local:6379`,
+			`2024-06-15T10:30:03Z stdout F GET /upstream HTTP/1.1 503`,
+		},
+	}
+	rep, err := DetectAnomalies(context.Background(), src, "k", AnomalyOptions{
+		MaxScanLines:    50,
+		SegmentCount:    15,
+		ZScoreThreshold: 1,
+		MinRepeatErrors: 10,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if rep.ScannedLines != 3 {
+		t.Fatalf("scanned: %d", rep.ScannedLines)
+	}
+	if !rep.LowSample {
+		t.Fatalf("expected low_sample for tiny CRI stream: %+v", rep)
+	}
+	if len(rep.LevelSpikeSegments) != 0 {
+		t.Fatalf("expected no spikes: %+v", rep.LevelSpikeSegments)
+	}
+}
+
+func TestDetectAnomalies_lowSample_scannedLessThanSegmentCount(t *testing.T) {
+	t.Parallel()
+	var lines []string
+	for range 5 {
+		lines = append(lines, `{"level":"INFO","msg":"ok"}`)
+	}
+	src := &sliceSource{id: "s", lines: lines}
+	rep, err := DetectAnomalies(context.Background(), src, "s", AnomalyOptions{
+		MaxScanLines:    500,
+		SegmentCount:    15,
+		ZScoreThreshold: 1,
+		MinRepeatErrors: 100,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if rep.ScannedLines != 5 {
+		t.Fatalf("scanned: %d", rep.ScannedLines)
+	}
+	if !rep.LowSample {
+		t.Fatal("expected low_sample when scanned_lines < segment_count")
+	}
+	if len(rep.LevelSpikeSegments) != 0 {
+		t.Fatalf("expected no spikes: %+v", rep.LevelSpikeSegments)
+	}
+}
+
+func TestDetectAnomalies_segmentCountsAndWarnBursts(t *testing.T) {
+	t.Parallel()
+	var lines []string
+	for range 8 {
+		lines = append(lines, `{"level":"WARN","msg":"same warn","x":1}`)
+	}
+	for range 12 {
+		lines = append(lines, `{"level":"INFO","msg":"ok"}`)
+	}
+	src := &sliceSource{id: "w", lines: lines}
+	rep, err := DetectAnomalies(context.Background(), src, "w", AnomalyOptions{
+		MaxScanLines:      500,
+		SegmentCount:      5,
+		ZScoreThreshold:   3,
+		MinRepeatErrors:   6,
+		IncludeWarnBursts: true,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if rep.SegmentCount != 5 {
+		t.Fatalf("segment_count: %d", rep.SegmentCount)
+	}
+	if rep.ActiveSegmentCount < 1 {
+		t.Fatalf("active_segment_count: %d", rep.ActiveSegmentCount)
+	}
+	if len(rep.RepeatedWarnBursts) < 1 || rep.RepeatedWarnBursts[0].Count < 6 {
+		t.Fatalf("warn bursts: %+v", rep.RepeatedWarnBursts)
+	}
+	rep2, err := DetectAnomalies(context.Background(), src, "w", AnomalyOptions{
+		MaxScanLines:      500,
+		SegmentCount:      5,
+		MinRepeatErrors:   6,
+		IncludeWarnBursts: false,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(rep2.RepeatedWarnBursts) != 0 {
+		t.Fatalf("expected no warn bursts: %+v", rep2.RepeatedWarnBursts)
 	}
 }

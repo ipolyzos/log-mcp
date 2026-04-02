@@ -85,6 +85,30 @@ func TestIsErrorLevel(t *testing.T) {
 	}
 }
 
+func TestSummarize_kubernetesCRI_stderrInfersError(t *testing.T) {
+	t.Parallel()
+	src := &sliceSource{
+		id: "pod",
+		lines: []string{
+			`2024-06-15T10:30:01.123456789Z stdout F GET /healthz HTTP/1.1 200`,
+			`2024-06-15T10:30:02Z stderr F connection refused to redis.cache.svc.cluster.local:6379`,
+		},
+	}
+	sum, err := Summarize(context.Background(), src, Options{StreamID: "pod", MaxScanLines: 10})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if sum.ErrorLineCount != 1 {
+		t.Fatalf("error lines: got %d want 1", sum.ErrorLineCount)
+	}
+	if sum.ScannedLines != 2 {
+		t.Fatalf("scanned: got %d want 2", sum.ScannedLines)
+	}
+	if len(sum.Groups) != 1 {
+		t.Fatalf("groups: %+v", sum.Groups)
+	}
+}
+
 func TestSummarize_groupingRankingAndServiceAgg(t *testing.T) {
 	t.Parallel()
 	src := &sliceSource{

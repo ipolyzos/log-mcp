@@ -1,0 +1,10 @@
+{
+  "stream_id": "k8s://ns/pod",
+  "scanned_lines": 0,
+  "truncated": false,
+  "low_sample": true,
+  "segment_count": 15,
+  "active_segment_count": 0,
+  "level_spike_segments": [],
+  "repeated_errors": []
+}

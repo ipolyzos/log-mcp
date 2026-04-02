@@ -66,11 +66,11 @@ The server uses the official Go SDK (`github.com/modelcontextprotocol/go-sdk/mcp
 | `version_info` | No | [`buildinfo`](../internal/buildinfo/buildinfo.go) name/version. |
 | `read_logs` | Yes | Bounded sequential read + optional filters; redacted lines. |
 | `search_logs` | Yes | Keyword search with optional filters. |
-| `filter_logs` | Yes | **AND**ed `since`/`until`/`level`/`keyword` (at least one required); see [tools.md — `filter_logs`](tools.md#filter_logs). |
+| `filter_logs` | Yes | **AND**ed `since`/`until`/`level`/`keyword`/`keywords_any` (at least one required); see [tools.md — `filter_logs`](tools.md#filter_logs). |
 | `summarize_errors` | Yes | Deterministic ERROR grouping ([`errsummary`](../internal/errsummary/summary.go)). |
 | `group_by_field` | Yes | JSON field grouping (`trace_id` / `request_id` aliases supported). |
 | `correlate_events` | Yes | All lines matching one field value, time-ordered. |
-| `detect_anomalies` | Yes | Segment z-scores + repeated-error bursts ([`loganalysis`](../internal/loganalysis/anomaly.go)). |
+| `detect_anomalies` | Yes | Segment z-scores (skipped when **`low_sample`**) + repeated-error bursts ([`loganalysis`](../internal/loganalysis/anomaly.go)). |
 | `extract_trace_flow` | Yes | Ordered trace steps for one id. |
 | `incident_summary` | No | Structured JSON in → brief out ([`llmtools`](../internal/llmtools/summary.go)); no log read. |
 | `explain_log_pattern` | No | One error group or burst → hints ([`llmtools`](../internal/llmtools/pattern.go)); no log read. |
@@ -78,10 +78,12 @@ The server uses the official Go SDK (`github.com/modelcontextprotocol/go-sdk/mcp
 Environment variables that enable backends:
 
 - **`LOG_MCP_ROOT`** — filesystem roots (same separator as the OS `PATH`); see [File-backed source](#file-backed-source).
+- **`LOG_MCP_PIPE_FD`** — integer **≥ 3**: line-delimited logs from that file descriptor ([`PipeLogSource`](../internal/source/pipe.go)). **`stream_id`** is **`pipe://`**. Required because MCP stdio uses fds **0–2**; see [usage.md — Piped logs](usage.md#piped-logs-shell).
 - **`LOG_MCP_K8S_NAMESPACES`** — comma-separated **allowlist** of Kubernetes namespace names (DNS labels only). Enables [`K8sLogSource`](../internal/source/k8s.go): only **`kubectl get pods -n <ns>`** and **`kubectl logs <pod> -n <ns>`** are run, with fixed argument shapes (no shell). Optional **`LOG_MCP_K8S_KUBECTL`** overrides the kubectl binary. Stream IDs are **`k8s://namespace/pod`** or **`k8s://namespace/pod/container`**.
 - **`LOG_MCP_DOCKER_CONTAINERS`** — comma-separated **allowlist** of Docker container names. Enables [`DockerLogSource`](../internal/source/docker.go): **`docker ps -a --format '{{.Names}}'`** to list (intersected with the allowlist) and **`docker logs <name>`** with optional **`--tail`** from `max_lines`. Optional **`LOG_MCP_DOCKER_DOCKER`** overrides the docker binary. Stream IDs are **`docker://container_name`**.
+- **`LOG_MCP_LOG_LEVEL`** — optional **`debug`**, **`info`** (default), **`warn`** / **`warning`**, or **`error`**: minimum level for **stderr** diagnostic logs while wiring [`logSourceFromEnv`](../internal/server/server.go) (ignored invalid roots, multi-source errors).
 - **`LOG_MCP_CF_APPS`** — comma-separated **allowlist** of Cloud Foundry app names (lowercase DNS-like). Enables [`CFLogSource`](../internal/source/cf.go): **`cf apps`** to list (intersected with the allowlist) and **`cf logs <app> --recent`**. Optional **`LOG_MCP_CF_CLI`** overrides the **`cf`** binary. Stream IDs are **`cf://app_name`**.
-- When more than one of the above is set, [`MultiLogSource`](../internal/source/multi.go) merges the corresponding streams and routes reads by stream ID prefix.
+- When more than one backend env is set, [`MultiLogSource`](../internal/source/multi.go) merges streams and routes reads by `pipe://` first, then `k8s://` / `docker://` / `cf://`, then file paths.
 
 Tools apply to any configured backend the same way. When nothing is configured, log tools return an error.
 

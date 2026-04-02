@@ -112,3 +112,7 @@ See [testing-and-ci.md](testing-and-ci.md).
 
 - [client-contract.md](client-contract.md) — how errors surface over MCP.
 - [usage.md](usage.md) — configuration and running the server.
+
+## Piped logs and MCP stdio
+
+If you set **`LOG_MCP_PIPE_FD`**, use **`stream_id` `pipe://`**. The value must be an integer **≥ 3** so stdin (fd 0) remains the MCP JSON-RPC stream. You cannot pipe app logs into the same stdin as the server; open them on another fd (see [usage.md](usage.md#piped-logs-shell)).

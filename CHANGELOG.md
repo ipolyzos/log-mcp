@@ -9,7 +9,59 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Planned
 
-- Nothing listed yet; see [GitHub issues](https://github.com/ipolyzos/log-mcp/issues).
+- Nothing else listed yet; see [GitHub issues](https://github.com/ipolyzos/log-mcp/issues).
+
+---
+
+## [0.1.3] — 2026-04-02
+
+Piped log input, retrieval and anomaly UX improvements, CRI-oriented parsing
+tweaks, CI bench smoke, golden tool JSON tests, and docs (K8s runbook, pipe shell
+patterns).
+
+### Added
+
+- **Piped log input**: optional **`LOG_MCP_PIPE_FD`** (integer **≥ 3**) and **`stream_id` `pipe://`** to read line-delimited logs from an alternate file descriptor while MCP stdio uses fds 0–2 ([internal/source/pipe.go](internal/source/pipe.go), [internal/server/server.go](internal/server/server.go)). Documented in [usage.md](docs/usage.md#piped-logs-shell) and [architecture.md](docs/architecture.md).
+
+- **CI**: **`go-bench-smoke`** job runs a short **`go test -bench`** pass in [`ci-reusable.yml`](.github/workflows/ci-reusable.yml).
+- **Tests**: golden JSON fixtures under [`internal/tools/testdata/golden/`](internal/tools/testdata/golden/) for stable tool result shapes ([`golden_json_test.go`](internal/tools/golden_json_test.go)).
+- **Docs**: [kubernetes-runbook.md](docs/kubernetes-runbook.md) for K8s stream IDs and CRI-oriented checks.
+
+- **Server diagnostics**: optional **`LOG_MCP_LOG_LEVEL`** for **`slog`** text logs on stderr when wiring log sources ([internal/server/slog.go](internal/server/slog.go)).
+
+- **`detect_anomalies`**: result includes **`segment_count`** and **`active_segment_count`**; optional **`include_warn_bursts`** adds **`repeated_warn_bursts`** (same shape as **`repeated_errors`**) for WARN/WARNING lines ([internal/loganalysis/anomaly.go](internal/loganalysis/anomaly.go)). **`incident_summary`** includes warn burst bullets when present.
+
+- **Log tool results** (`read_logs`, `search_logs`, `filter_logs`): optional **`result_hint`** when **`lines`** is empty and the stream was not truncated — **`no_lines_in_stream`** for unfiltered reads, **`no_matching_lines`** when predicates excluded all lines ([internal/tools/log_tools.go](internal/tools/log_tools.go)).
+
+- **`read_logs`** / **`filter_logs`**: optional **`keywords_any`** string array for **OR** substring matching on redacted lines (AND with time/level); mutually exclusive with **`keyword`** in one call; capped at 32 terms × 256 bytes each ([internal/logtool/filter.go](internal/logtool/filter.go), [internal/tools/log_tools.go](internal/tools/log_tools.go)).
+
+- **CRI stdout HTTP 5xx detection** ([internal/parse/text_parser.go](internal/parse/text_parser.go)): infer ERROR for access-log lines without an `HTTP/x.y` token (for example `GET /path 502`) and for structured `status=`, `http_status=`, `status_code=`, `response_status=`, and `resp_status=` fields in the 500–599 range.
+
+### Notes
+
+- Default **`internal/buildinfo.Version`** for non-`-ldflags` builds is **0.1.3**; release archives still stamp the tag via [`.github/workflows/release.yml`](.github/workflows/release.yml).
+
+---
+
+## [0.1.2] — 2026-04-02
+
+Operator-focused parsing and anomaly UX: Kubernetes **CRI** severity heuristics, **`detect_anomalies`** **`low_sample`**, and **`incident_summary`** awareness; MCP stdio integration tests.
+
+### Added
+
+- **MCP stdio-style integration tests** in [internal/server/integration_stdio_test.go](internal/server/integration_stdio_test.go): JSON-RPC over piped **[`mcp.IOTransport`](https://pkg.go.dev/github.com/modelcontextprotocol/go-sdk/mcp#IOTransport)** (same framing as stdio), temp **`LOG_MCP_ROOT`**, **`filter_logs`** with full JSON arguments (`json.Unmarshal`), plus **`read_logs`**, **`health_check`**, and **`version_info`**.
+- **Kubernetes CRI plain-text parsing** in [internal/parse/text_parser.go](internal/parse/text_parser.go): recognize `stdout` / `stderr` with CRI tag **`F`** or **`P`** after an optional RFC3339 prefix; emit **`cri_stream`**; infer **ERROR** on **stderr** when the message matches operator-oriented failure needles (connection errors, timeouts, panic/fatal, permission/denied, etc.) so **`summarize_errors`** and **`detect_anomalies`** count those lines like other error-level logs.
+
+### Changed
+
+- **`detect_anomalies`** ([internal/loganalysis/anomaly.go](internal/loganalysis/anomaly.go), [internal/tools/analysis_tools.go](internal/tools/analysis_tools.go)): result includes **`low_sample`** when **`scanned_lines`** is less than **`segment_count`** or fewer than two segments received lines. **Level spike z-scores** are computed only across **segments that actually contain lines**; with fewer than two such segments, **`level_spike_segments`** is empty so tiny streams are not given misleading geographic spikes.
+- **Kubernetes CRI stdout + HTTP 5xx** in [internal/parse/text_parser.go](internal/parse/text_parser.go): after stripping the CRI prefix, infer **ERROR** when the message matches `HTTP/x.y 5xx` (access-log style) so probe/upstream failures on stdout surface in **`summarize_errors`** / **`detect_anomalies`** like stderr-derived errors. Fixture `01_kubernetes_cri.log` includes an example **503** line.
+- **`incident_summary`** ([internal/llmtools/summary.go](internal/llmtools/summary.go)): when merged **`detect_anomalies`** JSON includes **`low_sample`: true**, the brief adds a leading bullet and **for_llm_context** guidance so operators do not treat omitted segment spikes as geographic evidence.
+- **Tests:** [internal/loganalysis/anomaly_test.go](internal/loganalysis/anomaly_test.go) covers **`detect_anomalies`** on Kubernetes **CRI-shaped** lines (stderr failure + stdout **5xx**) with **`low_sample`** and empty **`level_spike_segments`**.
+
+### Notes
+
+- Default **`internal/buildinfo.Version`** for non-`-ldflags` builds is **0.1.2**; release archives still stamp the tag via [`.github/workflows/release.yml`](.github/workflows/release.yml).
 
 ---
 
@@ -100,6 +152,8 @@ First stable release line: Model Context Protocol server for **read-only**, **re
 
 ---
 
-[Unreleased]: https://github.com/ipolyzos/log-mcp/compare/v0.1.1...HEAD
+[Unreleased]: https://github.com/ipolyzos/log-mcp/compare/v0.1.3...HEAD
+[0.1.3]: https://github.com/ipolyzos/log-mcp/compare/v0.1.2...v0.1.3
+[0.1.2]: https://github.com/ipolyzos/log-mcp/compare/v0.1.1...v0.1.2
 [0.1.1]: https://github.com/ipolyzos/log-mcp/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/ipolyzos/log-mcp/releases/tag/v0.1.0

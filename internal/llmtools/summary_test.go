@@ -2,6 +2,7 @@ package llmtools
 
 import (
 	"encoding/json"
+	"strings"
 	"testing"
 )
 
@@ -43,6 +44,34 @@ func TestValidateStructuredSummary_rejectsNonObject(t *testing.T) {
 	_, err := ValidateStructuredSummary([]byte(`["a"]`))
 	if err == nil {
 		t.Fatal("expected error")
+	}
+}
+
+func TestBuildIncidentBrief_lowSampleBullet(t *testing.T) {
+	t.Parallel()
+	raw := `{
+	  "level_spike_segments": [],
+	  "repeated_errors": [],
+	  "low_sample": true,
+	  "scanned_lines": 4,
+	  "truncated": false
+	}`
+	var obj map[string]json.RawMessage
+	if err := json.Unmarshal([]byte(raw), &obj); err != nil {
+		t.Fatal(err)
+	}
+	br, err := BuildIncidentBrief(obj)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(br.Bullets) < 1 {
+		t.Fatalf("bullets: %+v", br.Bullets)
+	}
+	if !strings.Contains(br.Bullets[0], "low_sample") {
+		t.Fatalf("expected low_sample in first bullet: %q", br.Bullets[0])
+	}
+	if !strings.Contains(br.ForLLMContext, "low_sample") {
+		t.Fatalf("context: %q", br.ForLLMContext)
 	}
 }
 

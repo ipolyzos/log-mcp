@@ -26,7 +26,7 @@ func TestMultiLogSource_routesStreams(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	multi, err := NewMultiLogSource("both", fileSrc, k8sSrc, nil, nil)
+	multi, err := NewMultiLogSource("both", nil, fileSrc, k8sSrc, nil, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -82,7 +82,7 @@ func TestMultiLogSource_routesDockerAndCF(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	multi, err := NewMultiLogSource("mix", nil, nil, dsrc, csrc)
+	multi, err := NewMultiLogSource("mix", nil, nil, nil, dsrc, csrc)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -18,6 +18,8 @@ For environment-driven backends and limits, see [architecture.md](architecture.m
 
 Do not print debug text to **stdout**; it will corrupt the MCP stream.
 
+**Piped application logs** use a separate file descriptor (**`LOG_MCP_PIPE_FD`**, integer **≥ 3**), not stdin. Tool calls then use **`stream_id` `pipe://`**. See [usage.md — Piped logs](usage.md#piped-logs-shell).
+
 ## Tool call success and failure
 
 Handlers registered with `mcp.AddTool` return a structured **result** type on success.
@@ -36,11 +38,11 @@ operators and client authors grep logs.
 
 | Situation | Example message shape |
 |-----------|------------------------|
-| No log source configured | `log access not configured: set LOG_MCP_ROOT to a readable file or directory …` |
+| No log source configured | `log access not configured: set LOG_MCP_ROOT …` or **`LOG_MCP_PIPE_FD`** (fd ≥ 3) or another backend; see [usage.md](usage.md). |
 | Missing `stream_id` | `stream_id is required` |
 | Missing `keyword` (search) | `keyword is required for search_logs` |
-| Empty filters (filter_logs) | `filter_logs requires at least one of: since, until, level, keyword` |
-| `filter_logs` semantics | All **set** fields among `since`, `until`, `level`, `keyword` are **AND**ed; see [tools.md — `filter_logs`](tools.md#filter_logs). |
+| Empty filters (filter_logs) | `filter_logs requires at least one of: since, until, level, keyword, keywords_any` |
+| `filter_logs` semantics | All **set** fields among `since`, `until`, `level`, and the text predicate (`keyword` **or** `keywords_any`) are **AND**ed; see [tools.md — `filter_logs`](tools.md#filter_logs). |
 | Bad RFC3339 time | `invalid RFC3339 time "…": …` |
 | Missing correlation field / value | `field is required`, `value is required`, `trace_id is required` |
 | LLM tools | `structured_summary is required`, `provide exactly one of error_group or repeated_burst`, validation errors from [`internal/llmtools`](../internal/llmtools/) |

@@ -1,0 +1,10 @@
+{
+  "stream_id": "/tmp/x",
+  "lines": [
+    {
+      "line_number": 1,
+      "text": "hello"
+    }
+  ],
+  "truncated": false
+}
