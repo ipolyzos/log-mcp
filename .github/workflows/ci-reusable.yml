@@ -7,6 +7,22 @@ permissions:
   contents: read
 
 jobs:
+  go-mod-tidy:
+    name: go mod tidy check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Enforce tidy go.mod and go.sum
+        run: |
+          go mod tidy
+          git diff --exit-code go.mod go.sum
+
   go-vet:
     name: go vet
     runs-on: ubuntu-latest
@@ -35,7 +51,7 @@ jobs:
       - name: golangci-lint
         uses: golangci/golangci-lint-action@v7
         with:
-          version: v2.7.2
+          version: v2.11.4
           args: --timeout=5m
 
   go-test:
