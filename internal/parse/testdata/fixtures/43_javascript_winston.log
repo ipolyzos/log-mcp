@@ -1,0 +1,3 @@
+# Winston JSON transport (synthetic).
+# Ref: https://github.com/winstonjs/winston#logging
+{"level":"info","message":"job enqueued","timestamp":"2024-08-20T12:10:08.000Z","queue":"emails","jobId":"job_001"}

@@ -1,0 +1,3 @@
+# tracing / tracing-subscriber compact line (synthetic; stdout fmt).
+# Ref: https://docs.rs/tracing-subscriber/latest/tracing_subscriber/fmt/index.html
+2024-08-20T12:10:10.123456Z  INFO request{method=GET path=/health}: gateway: readiness probe succeeded

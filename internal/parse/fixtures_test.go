@@ -130,6 +130,11 @@ func TestFixtureLogLines_ExpectedSubstrings(t *testing.T) {
 		{"39_java_opentelemetry_sdk.log", 0, "payment"},
 		{"40_python_json_logger.log", 0, "heartbeat"},
 		{"41_python_structlog.log", 0, "merged"},
+		{"42_javascript_pino.log", 0, "checkout"},
+		{"43_javascript_winston.log", 0, "enqueued"},
+		{"44_javascript_opentelemetry_sdk.log", 0, "opentelemetry"},
+		{"45_rust_tracing_subscriber.log", 0, "readiness"},
+		{"46_rust_log_env_logger.log", 0, "pool"},
 	}
 	for _, tc := range cases {
 		t.Run(tc.file+"_"+strconv.Itoa(tc.lineIdx), func(t *testing.T) {
