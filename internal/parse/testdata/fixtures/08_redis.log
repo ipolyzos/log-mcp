@@ -1,0 +1,4 @@
+# Redis server stdout (synthetic).
+# Ref: https://redis.io/docs/latest/operate/rs-7-2-4/logging/
+1:M 15 Jun 2024 10:43:00.123 * Ready to accept connections tcp
+1:M 15 Jun 2024 10:43:01.456 # WARNING: overcommit_memory is set to 0! Background save may fail under low memory condition.

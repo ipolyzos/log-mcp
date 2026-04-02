@@ -82,6 +82,17 @@ func TestFixtureLogLines_ExpectedSubstrings(t *testing.T) {
 		{"03_nginx_access.log", 1, "499"},
 		{"04_apache_access.log", 0, "index.html"},
 		{"04_apache_access.log", 1, "404"},
+		{"05_postgresql.log", 0, "duration"},
+		{"05_postgresql.log", 1, "duplicate"},
+		{"06_mysql.log", 0, "Aborted"},
+		{"06_mysql.log", 1, "InnoDB"},
+		{"07_mongodb.log", 0, "Slow query"},
+		{"07_mongodb.log", 1, "WiredTiger"},
+		{"08_redis.log", 0, "Ready"},
+		{"08_redis.log", 1, "overcommit"},
+		{"09_nomad.log", 0, "allocations"},
+		{"09_nomad.log", 1, "vault"},
+		{"10_cloudfoundry.log", 0, "shop.example.com"},
 	}
 	for _, tc := range cases {
 		t.Run(tc.file+"_"+strconv.Itoa(tc.lineIdx), func(t *testing.T) {

@@ -1,0 +1,4 @@
+# HashiCorp Nomad agent text log (synthetic).
+# Ref: https://developer.hashicorp.com/nomad/docs/configuration#log_file
+2024-06-15T10:44:00.123-0700 [INFO]  client: done waiting for allocations; node is ready
+2024-06-15T10:44:01.456-0700 [WARN]  client: failed to check vault token: permission denied

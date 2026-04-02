@@ -1,0 +1,4 @@
+# MongoDB structured JSON log (synthetic, MongoDB 5+ style).
+# Ref: https://www.mongodb.com/docs/manual/reference/log-messages/
+{"t":{"$date":"2024-06-15T10:42:01.000Z"},"s":"I","c":"COMMAND","id":51803,"ctx":"conn3","msg":"Slow query","attr":{"ns":"shop.orders","durationMillis":245}}
+{"t":{"$date":"2024-06-15T10:42:02.000Z"},"s":"E","c":"STORAGE","id":22435,"ctx":"initandlisten","msg":"WiredTiger error"}

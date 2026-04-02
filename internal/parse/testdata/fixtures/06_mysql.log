@@ -1,0 +1,4 @@
+# MySQL / MariaDB error log style (synthetic).
+# Ref: https://dev.mysql.com/doc/refman/8.0/en/error-log.html
+2024-06-15T10:41:00.123456Z 8 [Note] [MY-012345] Aborted connection 99 to db: 'auth' user: 'api' host: '10.0.1.5' (Got timeout reading communication packets)
+2024-06-15T10:41:01.234567Z 9 [ERROR] [MY-013183] InnoDB: Assertion failure in thread 1234
