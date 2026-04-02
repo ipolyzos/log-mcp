@@ -29,9 +29,14 @@ The server uses the official Go SDK (`github.com/modelcontextprotocol/go-sdk/mcp
 
 ### Log MCP tools
 
-When **`LOG_MCP_ROOT`** is set to one or more filesystem roots (same separator as the OS `PATH`), [`New`](../internal/server/server.go) builds a [`FileLogSource`](../internal/source/file.go) and registers:
+[`New`](../internal/server/server.go) builds log sources from the environment and registers tools when at least one source is configured:
 
-- **`read_logs`** — sequential read with optional `max_lines` and optional filters (`since` / `until` RFC3339, `level`, `keyword`). With no filters, `max_lines` is passed to the source so the tail of the file is not fully scanned.
+- **`LOG_MCP_ROOT`** — filesystem roots (same separator as the OS `PATH`); see [File-backed source](#file-backed-source).
+- **`LOG_MCP_K8S_NAMESPACES`** — comma-separated **allowlist** of Kubernetes namespace names (DNS labels only). Enables [`K8sLogSource`](../internal/source/k8s.go): only **`kubectl get pods -n <ns>`** and **`kubectl logs <pod> -n <ns>`** are run, with fixed argument shapes (no shell). Optional **`LOG_MCP_K8S_KUBECTL`** overrides the kubectl binary. Stream IDs are **`k8s://namespace/pod`** or **`k8s://namespace/pod/container`**. With both env vars set, [`MultiLogSource`](../internal/source/multi.go) merges file and pod streams.
+
+Tools apply to any configured backend the same way. When nothing is configured, log tools return an error.
+
+- **`read_logs`** — sequential read with optional `max_lines` and optional filters (`since` / `until` RFC3339, `level`, `keyword`). With no filters, `max_lines` is passed to the source (filesystem tail or kubectl `--tail`).
 - **`search_logs`** — requires `keyword`; optional time and level filters; caps matches with `max_matches`.
 - **`filter_logs`** — requires at least one of `since`, `until`, `level`, or `keyword`; optional `max_lines`.
 - **`summarize_errors`** — scans up to `max_scan_lines` (default 20000), keeps ERROR/FATAL/CRITICAL-style levels, groups lines by a stable fingerprint ([`errsummary`](../internal/errsummary/summary.go): redaction + normalized message and error-related JSON fields), sorts groups by **count descending** then fingerprint ascending, and reports **by_service** using `service` / `app` / `logger` / … fields or the log file basename.
@@ -48,7 +53,11 @@ Log backends implement [`LogSource`](../internal/source/source.go):
 - **`List(ctx)`** — Returns the set of **log streams** currently exposed (`LogStream` carries an `ID` and display `Name`).
 - **`Read(ctx, query)`** — Opens a stream selected by `Query.StreamID` and returns a **receive-only channel** of `LogEntry` values (line number + raw line text). Reading stops when the file ends, the context is cancelled, or optional `MaxLines` / `MaxBytes` limits are hit.
 
-This interface is intentionally **line-oriented**: parsers consume each `LogEntry.Raw` line without changing how bytes are pulled from disk.
+This interface is intentionally **line-oriented**: parsers consume each `LogEntry.Raw` line without changing how bytes are pulled from the backend.
+
+### Kubernetes backend
+
+Pod log streams are enumerated per allowlisted namespace and read through kubectl. Namespace and pod (and optional container) names are validated as DNS labels before any subprocess call. Pod names returned by `kubectl get pods` are filtered the same way so unexpected output lines are ignored. Cluster access and credentials follow the normal **`kubectl`** / **`KUBECONFIG`** environment of the MCP server process.
 
 ## Log parsing
 
@@ -84,7 +93,7 @@ Package [`internal/pipeline`](../internal/pipeline/pipeline.go) composes existin
 
 Stages communicate through **Go channels** whose capacity is set by [`Pipeline.ChannelBuffer`](../internal/pipeline/pipeline.go) (default 32). Only a bounded number of in-flight `LogEntry` / intermediate structs exist at once; the implementation does **not** read the whole file into a slice before processing.
 
-Cancellation is honored at the **source**: when the [`context.Context`] passed to [`Pipeline.Run`] is cancelled, producers such as [`FileLogSource`](../internal/source/file.go) stop sending and close their output channel; workers drain connected channels and exit so the result channel closes.
+Cancellation is honored at the **source**: when the [`context.Context`] passed to [`Pipeline.Run`] is cancelled, producers such as [`FileLogSource`](../internal/source/file.go) or [`K8sLogSource`](../internal/source/k8s.go) stop sending and close their output channel; workers drain connected channels and exit so the result channel closes.
 
 ### File-backed source
 
@@ -100,5 +109,5 @@ Streaming uses a large `bufio.Reader` buffer and `ReadString('\n')` so individua
 ## Future direction (not implemented)
 
 - MCP tool to call `LogSource.List` (stream discovery) and stricter validation of `stream_id` against listed IDs.
-- Additional sources (journald, object storage, Kubernetes API) behind the same `LogSource` interface.
+- Additional sources (journald, object storage) and richer Kubernetes APIs behind the same `LogSource` interface.
 - Optional tail/follow semantics, nested JSON log models, and richer schema-aware parsers.
