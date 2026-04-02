@@ -1,0 +1,49 @@
+# Architecture
+
+This document describes how **log-mcp** is structured today and how log data flows through the system. For repository layout and build instructions, see the root [README.md](../README.md).
+
+## Goals
+
+- **Read-only** access to log data: no writes, deletes, or shell execution on behalf of tools.
+- **Streaming** reads so large files do not need to be loaded entirely into memory.
+- **Testable** boundaries: transports and sources can be exercised without a full MCP client.
+
+## Major components
+
+| Area | Location | Role |
+|------|----------|------|
+| MCP server | `cmd/log-mcp`, `internal/server` | stdio JSON-RPC session, tool registration, process lifecycle. |
+| Tool registry | `internal/tools` | Ordered registration of MCP tools onto `mcp.Server`. |
+| Log sources | `internal/source` | Pluggable backends that list streams and read them as lines. |
+| Build metadata | `internal/buildinfo` | Static name/version for MCP `Implementation` and `version_info`. |
+
+## MCP layer (stdio)
+
+The server uses the official Go SDK (`github.com/modelcontextprotocol/go-sdk/mcp`) with `StdioTransport`: **stdout** carries MCP messages; **stderr** is reserved for diagnostics (once logging is added). Wire envelopes are JSON-RPC 2.0; see `internal/server` for typed request/response structs used in tests.
+
+## Log source abstraction
+
+Log backends implement [`LogSource`](../internal/source/source.go):
+
+- **`Name()`** — Stable label for this source instance (metrics, tools, debugging).
+- **`List(ctx)`** — Returns the set of **log streams** currently exposed (`LogStream` carries an `ID` and display `Name`).
+- **`Read(ctx, query)`** — Opens a stream selected by `Query.StreamID` and returns a **receive-only channel** of `LogEntry` values (line number + raw line text). Reading stops when the file ends, the context is cancelled, or optional `MaxLines` / `MaxBytes` limits are hit.
+
+This interface is intentionally **line-oriented**: binary or structured logs may be layered later (parsers, codecs) without changing how bytes are pulled from disk.
+
+### File-backed source
+
+[`FileLogSource`](../internal/source/file.go) is configured with one or more **roots**, each an absolute path after construction:
+
+- If a root is a **file**, it appears as a single stream.
+- If a root is a **directory**, each **immediate** child regular file is a stream (no recursive descent yet).
+
+`Read` resolves `Query.StreamID` to an absolute path and allows the open only if that path is contained under one of the configured roots (via `filepath.Rel`), so arbitrary path injection from tool arguments can be rejected when tools validate against `List` results.
+
+Streaming uses a large `bufio.Reader` buffer and `ReadString('\n')` so individual lines can exceed the default `bufio.Scanner` token limit—important for “wide” log lines.
+
+## Future direction (not implemented)
+
+- MCP tools that call `LogSource.List` / `Read` with redaction and rate limits.
+- Additional sources (journald, object storage, Kubernetes API) behind the same `LogSource` interface.
+- Optional tail/follow semantics and structured log parsing.
