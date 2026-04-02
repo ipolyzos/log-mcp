@@ -24,6 +24,10 @@ var (
 	squashSpaceRE    = regexp.MustCompile(`\s+`)
 	// HTTP response status on access-log-style lines, e.g. "GET /x HTTP/1.1 503".
 	textHTTP5xxStatus = regexp.MustCompile(`(?i)\bHTTP/\d\.\d\s+(5[0-9]{2})\b`)
+	// Common without protocol version, e.g. nginx "GET /api 502" or envoy-style request lines.
+	textHTTP5xxRequestLine = regexp.MustCompile(`(?i)\b(?:GET|HEAD|POST|PUT|PATCH|DELETE|OPTIONS|CONNECT|TRACE)\s+\S+\s+(5[0-9]{2})\b`)
+	// Structured fields often seen in app / proxy logs.
+	textHTTP5xxKV = regexp.MustCompile(`(?i)\b(?:status|http_status|status_code|response_status|resp_status)=(5[0-9]{2})\b`)
 )
 
 // stderrErrorNeedles are matched case-insensitively on the post-CRI body when the stream
@@ -139,7 +143,15 @@ func stderrImpliesError(msg string) bool {
 }
 
 func stdoutHTTP5xx(msg string) bool {
-	m := textHTTP5xxStatus.FindStringSubmatch(msg)
+	for _, re := range []*regexp.Regexp{textHTTP5xxStatus, textHTTP5xxRequestLine, textHTTP5xxKV} {
+		if m := re.FindStringSubmatch(msg); httpStatusSubmatchIs5xx(m) {
+			return true
+		}
+	}
+	return false
+}
+
+func httpStatusSubmatchIs5xx(m []string) bool {
 	if len(m) < 2 {
 		return false
 	}

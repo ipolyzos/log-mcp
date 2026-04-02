@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **CRI stdout HTTP 5xx detection** ([internal/parse/text_parser.go](internal/parse/text_parser.go)): infer ERROR for access-log lines without an `HTTP/x.y` token (for example `GET /path 502`) and for structured `status=`, `http_status=`, `status_code=`, `response_status=`, and `resp_status=` fields in the 500–599 range.
+
 ### Planned
 
 - Nothing else listed yet; see [GitHub issues](https://github.com/ipolyzos/log-mcp/issues).
