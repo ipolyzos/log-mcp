@@ -68,7 +68,6 @@ env block in their config. Typical shape:
 
 Exact config keys depend on the host application; refer to its MCP documentation.
 
-
 ## Piped logs (shell)
 
 MCP uses **stdin (fd 0)** for JSON-RPC, so you cannot attach raw application logs to
