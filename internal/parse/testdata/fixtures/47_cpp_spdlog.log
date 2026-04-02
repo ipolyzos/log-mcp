@@ -1,0 +1,3 @@
+# spdlog default color-off pattern (synthetic).
+# Ref: https://github.com/gabime/spdlog
+[2024-08-20 12:10:12.345] [gateway] [info] upstream latency_ms=45 target=inventory:8080

@@ -1,0 +1,3 @@
+# qlog-inspired single-line JSON event (synthetic; real qlog often uses .qlog files).
+# Ref: https://datatracker.ietf.org/doc/html/draft-ietf-quic-qlog-h3-events
+{"time":1724151033.456,"name":"quic:recovery:metrics_updated","data":{"pto_count":2,"smoothed_rtt":45.2}}

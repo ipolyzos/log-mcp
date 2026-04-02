@@ -1,0 +1,3 @@
+# OpenTelemetry C++ exporter / diagnostic JSON (synthetic).
+# Ref: https://opentelemetry.io/docs/languages/cpp/
+{"timestamp":"2024-08-20T12:10:14.000Z","level":"INFO","message":"OTLP gRPC export batch complete","exported_spans":12,"endpoint":"otel-collector:4317"}

@@ -1,0 +1,3 @@
+# structlog JSON output (synthetic; primary payload in event).
+# Ref: https://www.structlog.org/en/stable/
+{"cart_id":"c42","event":"cart merged from guest session","timestamp":"2024-08-20T12:10:06.000Z","level":"info","logger":"checkout"}

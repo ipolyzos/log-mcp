@@ -1,0 +1,3 @@
+# Serilog.Formatting.Json style expanded row (synthetic).
+# Ref: https://github.com/serilog/serilog-formatting-compact
+{"@timestamp":"2024-08-20T12:10:17.000Z","level":"WARN","message":"cache miss for tenant","Properties":"{\"Region\":\"eu-west-1\",\"TenantId\":\"t-9\"}"}

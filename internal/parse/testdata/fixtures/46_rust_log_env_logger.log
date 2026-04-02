@@ -1,0 +1,3 @@
+# env_logger / log crate default format (synthetic).
+# Ref: https://docs.rs/env_logger/latest/env_logger/
+2024-08-20T12:10:11Z INFO  mycrate::db] connection pool warmed size=8

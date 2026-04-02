@@ -1,0 +1,3 @@
+# Pino JSON log line (synthetic).
+# Ref: https://getpino.io/#/docs/api
+{"level":30,"time":1724151006000,"pid":8842,"hostname":"checkout-pod-5","name":"checkout-api","msg":"checkout completed","reqId":"req-7","durationMs":42}
