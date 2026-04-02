@@ -194,6 +194,7 @@ Segment-based error-rate spikes and repeated identical ERROR lines (see
 | Result | `stream_id` | string | yes | |
 | Result | `scanned_lines` | int64 | yes | |
 | Result | `truncated` | bool | yes | |
+| Result | `low_sample` | bool | yes | **true** when `scanned_lines` &lt; `segment_count` or fewer than two segments received lines; **level_spike_segments** is then empty (z-scores need at least two populated segments). |
 | Result | `level_spike_segments` | array | yes | `segment_index`, `line_start`, `line_end`, `error_count`, `mean_errors`, `std_dev`, `z_score`. |
 | Result | `repeated_errors` | array | yes | `fingerprint`, `sample_message`, `count`, `first_line`, `last_line`. |
 

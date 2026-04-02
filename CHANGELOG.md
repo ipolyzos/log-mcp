@@ -12,6 +12,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **MCP stdio-style integration tests** in [internal/server/integration_stdio_test.go](internal/server/integration_stdio_test.go): JSON-RPC over piped **[`mcp.IOTransport`](https://pkg.go.dev/github.com/modelcontextprotocol/go-sdk/mcp#IOTransport)** (same framing as stdio), temp **`LOG_MCP_ROOT`**, **`filter_logs`** with full JSON arguments (`json.Unmarshal`), plus **`read_logs`**, **`health_check`**, and **`version_info`**.
 - **Kubernetes CRI plain-text parsing** in [internal/parse/text_parser.go](internal/parse/text_parser.go): recognize `stdout` / `stderr` with CRI tag **`F`** or **`P`** after an optional RFC3339 prefix; emit **`cri_stream`**; infer **ERROR** on **stderr** when the message matches operator-oriented failure needles (connection errors, timeouts, panic/fatal, permission/denied, etc.) so **`summarize_errors`** and **`detect_anomalies`** count those lines like other error-level logs.
 
+### Changed
+
+- **`detect_anomalies`** ([internal/loganalysis/anomaly.go](internal/loganalysis/anomaly.go), [internal/tools/analysis_tools.go](internal/tools/analysis_tools.go)): result includes **`low_sample`** when **`scanned_lines`** is less than **`segment_count`** or fewer than two segments received lines. **Level spike z-scores** are computed only across **segments that actually contain lines**; with fewer than two such segments, **`level_spike_segments`** is empty so tiny streams are not given misleading geographic spikes.
+
 ### Planned
 
 - Nothing else listed yet; see [GitHub issues](https://github.com/ipolyzos/log-mcp/issues).

@@ -29,6 +29,7 @@ type DetectAnomaliesOutput struct {
 	StreamID           string                           `json:"stream_id"`
 	ScannedLines       int64                            `json:"scanned_lines"`
 	Truncated          bool                             `json:"truncated"`
+	LowSample          bool                             `json:"low_sample"`
 	LevelSpikeSegments []loganalysis.LevelSpikeSegment  `json:"level_spike_segments"`
 	RepeatedErrors     []loganalysis.RepeatedErrorBurst `json:"repeated_errors"`
 }
@@ -57,6 +58,7 @@ func registerAdvancedAnalysis(s *mcp.Server, src source.LogSource) {
 		Description: "Deterministic anomaly hints (no ML): scans redacted logs, splits the stream into equal line-count segments, " +
 			"flags segments where ERROR/FATAL/CRITICAL counts are unusually high vs other segments (z-score), " +
 			"and lists highly repeated identical ERROR lines (fingerprint of redacted text). " +
+			"When the stream is short vs segment_count or all lines fall in one segment, low_sample is true and level_spike_segments is empty (no cross-segment comparison). " +
 			"Respects LOG_MCP_SEC_MAX_SCAN_LINES.",
 	}, detectAnomaliesHandler(src))
 	mcp.AddTool(s, &mcp.Tool{
@@ -96,6 +98,7 @@ func detectAnomaliesHandler(src source.LogSource) func(context.Context, *mcp.Cal
 			StreamID:           rep.StreamID,
 			ScannedLines:       rep.ScannedLines,
 			Truncated:          rep.Truncated,
+			LowSample:          rep.LowSample,
 			LevelSpikeSegments: rep.LevelSpikeSegments,
 			RepeatedErrors:     rep.RepeatedErrors,
 		}, nil

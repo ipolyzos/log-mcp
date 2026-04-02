@@ -70,7 +70,7 @@ The server uses the official Go SDK (`github.com/modelcontextprotocol/go-sdk/mcp
 | `summarize_errors` | Yes | Deterministic ERROR grouping ([`errsummary`](../internal/errsummary/summary.go)). |
 | `group_by_field` | Yes | JSON field grouping (`trace_id` / `request_id` aliases supported). |
 | `correlate_events` | Yes | All lines matching one field value, time-ordered. |
-| `detect_anomalies` | Yes | Segment z-scores + repeated-error bursts ([`loganalysis`](../internal/loganalysis/anomaly.go)). |
+| `detect_anomalies` | Yes | Segment z-scores (skipped when **`low_sample`**) + repeated-error bursts ([`loganalysis`](../internal/loganalysis/anomaly.go)). |
 | `extract_trace_flow` | Yes | Ordered trace steps for one id. |
 | `incident_summary` | No | Structured JSON in → brief out ([`llmtools`](../internal/llmtools/summary.go)); no log read. |
 | `explain_log_pattern` | No | One error group or burst → hints ([`llmtools`](../internal/llmtools/pattern.go)); no log read. |

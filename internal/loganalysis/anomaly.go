@@ -32,9 +32,12 @@ type AnomalyOptions struct {
 
 // AnomalyReport summarizes statistically unusual regions and repeated errors.
 type AnomalyReport struct {
-	StreamID           string
-	ScannedLines       int64
-	Truncated          bool
+	StreamID     string
+	ScannedLines int64
+	Truncated    bool
+	// LowSample is true when segment-wise z-scores are not statistically meaningful:
+	// fewer than two segments received lines, or scanned_lines < segment_count.
+	LowSample          bool
 	LevelSpikeSegments []LevelSpikeSegment
 	RepeatedErrors     []RepeatedErrorBurst
 }
@@ -149,38 +152,47 @@ func DetectAnomalies(ctx context.Context, src source.LogSource, streamID string,
 		}
 	}
 
-	counts := make([]float64, segN)
-	for i := range segs {
-		counts[i] = float64(segs[i].errCount)
-	}
-	mean, std := meanStdDev(counts)
-
-	var spikes []LevelSpikeSegment
+	var activeIdx []int
 	for i, s := range segs {
 		if s.errCount == 0 && s.lineMin == math.MaxInt64 {
 			continue
 		}
-		var z float64
-		if std > 1e-9 {
-			z = (float64(s.errCount) - mean) / std
-		} else if float64(s.errCount) > mean && s.errCount > 0 {
-			z = 99
+		activeIdx = append(activeIdx, i)
+	}
+
+	lowSample := scanned < int64(segN) || len(activeIdx) < 2
+
+	var spikes []LevelSpikeSegment
+	if len(activeIdx) >= 2 {
+		activeCounts := make([]float64, len(activeIdx))
+		for j, i := range activeIdx {
+			activeCounts[j] = float64(segs[i].errCount)
 		}
-		if z >= zTh && s.errCount > 0 {
-			ls := s.lineMin
-			le := s.lineMax
-			if ls == math.MaxInt64 {
-				ls = 0
+		mean, std := meanStdDev(activeCounts)
+		for _, i := range activeIdx {
+			s := segs[i]
+			var z float64
+			if std > 1e-9 {
+				z = (float64(s.errCount) - mean) / std
+			} else if float64(s.errCount) > mean && s.errCount > 0 {
+				z = 99
 			}
-			spikes = append(spikes, LevelSpikeSegment{
-				SegmentIndex: i,
-				LineStart:    ls,
-				LineEnd:      le,
-				ErrorCount:   s.errCount,
-				MeanErrors:   mean,
-				StdDev:       std,
-				ZScore:       z,
-			})
+			if z >= zTh && s.errCount > 0 {
+				ls := s.lineMin
+				le := s.lineMax
+				if ls == math.MaxInt64 {
+					ls = 0
+				}
+				spikes = append(spikes, LevelSpikeSegment{
+					SegmentIndex: i,
+					LineStart:    ls,
+					LineEnd:      le,
+					ErrorCount:   s.errCount,
+					MeanErrors:   mean,
+					StdDev:       std,
+					ZScore:       z,
+				})
+			}
 		}
 	}
 	if len(spikes) > maxLevelSpikeReports {
@@ -215,6 +227,7 @@ func DetectAnomalies(ctx context.Context, src source.LogSource, streamID string,
 		StreamID:           streamID,
 		ScannedLines:       scanned,
 		Truncated:          trunc,
+		LowSample:          lowSample,
 		LevelSpikeSegments: spikes,
 		RepeatedErrors:     rep,
 	}, nil

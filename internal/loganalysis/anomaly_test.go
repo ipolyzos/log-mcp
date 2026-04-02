@@ -70,6 +70,12 @@ func TestDetectAnomalies_repeatedErrors(t *testing.T) {
 	if rep.RepeatedErrors[0].Count < 6 {
 		t.Fatalf("count: %d", rep.RepeatedErrors[0].Count)
 	}
+	if !rep.LowSample {
+		t.Fatal("expected low_sample: all lines fall in one segment vs default width")
+	}
+	if len(rep.LevelSpikeSegments) != 0 {
+		t.Fatalf("expected no level spikes when low_sample: %+v", rep.LevelSpikeSegments)
+	}
 }
 
 func TestDetectAnomalies_levelSpike(t *testing.T) {
@@ -98,5 +104,35 @@ func TestDetectAnomalies_levelSpike(t *testing.T) {
 	}
 	if len(rep.LevelSpikeSegments) < 1 {
 		t.Fatalf("expected level spike: spikes=%v repeats=%v", rep.LevelSpikeSegments, rep.RepeatedErrors)
+	}
+	if rep.LowSample {
+		t.Fatalf("did not expect low_sample for multi-segment stream: %+v", rep)
+	}
+}
+
+func TestDetectAnomalies_lowSample_scannedLessThanSegmentCount(t *testing.T) {
+	t.Parallel()
+	var lines []string
+	for range 5 {
+		lines = append(lines, `{"level":"INFO","msg":"ok"}`)
+	}
+	src := &sliceSource{id: "s", lines: lines}
+	rep, err := DetectAnomalies(context.Background(), src, "s", AnomalyOptions{
+		MaxScanLines:    500,
+		SegmentCount:    15,
+		ZScoreThreshold: 1,
+		MinRepeatErrors: 100,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if rep.ScannedLines != 5 {
+		t.Fatalf("scanned: %d", rep.ScannedLines)
+	}
+	if !rep.LowSample {
+		t.Fatal("expected low_sample when scanned_lines < segment_count")
+	}
+	if len(rep.LevelSpikeSegments) != 0 {
+		t.Fatalf("expected no spikes: %+v", rep.LevelSpikeSegments)
 	}
 }

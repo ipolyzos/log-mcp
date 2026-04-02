@@ -87,7 +87,7 @@ Times must be **RFC3339** (for example `2026-04-02T12:00:00Z`). String tool argu
 ### Incident workflow (deterministic)
 
 1. **`summarize_errors`** on a stream → ranked `groups`.
-2. **`detect_anomalies`** on the same or another stream → spikes + `repeated_errors`.
+2. **`detect_anomalies`** on the same or another stream → `level_spike_segments` + `repeated_errors` (if **`low_sample`** is true, spikes are omitted—stream too short or all lines in one segment).
 3. **`incident_summary`** with `structured_summary` set to a merged JSON object from
    those tools (no raw `read_logs` payload).
 4. Optionally **`explain_log_pattern`** with one `error_group` or `repeated_burst`.
