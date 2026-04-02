@@ -8,4 +8,4 @@ See that directory’s [README.md](../../../internal/parse/testdata/fixtures/REA
 
 Themes covered (synthetic lines): Kubernetes CRI, Docker, web servers, databases, Nomad, Cloud Foundry, major clouds (Lambda, CloudFront, GCP LB, Azure Functions, GCS audit, Azure Blob), service meshes / proxies (Envoy, Linkerd, Kong, HAProxy), Kafka/RabbitMQ, Elastic stack, Prometheus/Grafana, Jaeger-style traces, Cassandra, app-level DynamoDB-style JSON, S3 access logs, Cortex/Mimir-style ingester logs, polyglot app logging (Java through C#), and a shared JSON “golden stack” sample for cross-service observability.
 
-For how these fixtures are tested and how CI covers the repo, see [docs/testing-and-ci.md](../../docs/testing-and-ci.md).
+For how these fixtures are tested and how CI covers the repo, see [docs/testing-and-ci.md](../../../docs/testing-and-ci.md).
