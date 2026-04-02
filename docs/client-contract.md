@@ -40,6 +40,7 @@ operators and client authors grep logs.
 | Missing `stream_id` | `stream_id is required` |
 | Missing `keyword` (search) | `keyword is required for search_logs` |
 | Empty filters (filter_logs) | `filter_logs requires at least one of: since, until, level, keyword` |
+| `filter_logs` semantics | All **set** fields among `since`, `until`, `level`, `keyword` are **AND**ed; see [tools.md — `filter_logs`](tools.md#filter_logs). |
 | Bad RFC3339 time | `invalid RFC3339 time "…": …` |
 | Missing correlation field / value | `field is required`, `value is required`, `trace_id is required` |
 | LLM tools | `structured_summary is required`, `provide exactly one of error_group or repeated_burst`, validation errors from [`internal/llmtools`](../internal/llmtools/) |
