@@ -1,23 +1,31 @@
 # Documentation
 
-Deep dives for **log-mcp** live in this directory.
+**Authoritative detail** for **log-mcp** lives in this folder. The root
+[README.md](../README.md) is a short overview and entry point; when the two
+differ, treat **`docs/`** as the source of truth for behavior and configuration.
 
-## Start here
+## In this directory
 
-| Document | Description |
-|----------|-------------|
-| [architecture.md](architecture.md) | MCP stdio model, **all tools** and env vars, log sources (file, Kubernetes, Docker, Cloud Foundry), security limits (`LOG_MCP_SEC_*`), parsing, normalization, streaming pipeline. |
+| Document | Contents |
+|----------|----------|
+| [architecture.md](architecture.md) | End-to-end design: MCP stdio model, **complete tool catalog**, all log-source environment variables, security limits (`LOG_MCP_SEC_*`), parsing and normalization, streaming pipeline, file/k8s/docker/CF backends. |
+| [testing-and-ci.md](testing-and-ci.md) | Parser fixtures, **`go test` / `go vet`**, **`govulncheck`**, **`go mod tidy`** gate, lint jobs, workflow map, releases. |
 
-## Repository guides (root)
+## Repository guides (repo root)
 
-These files also appear in the GitHub repository **Community** / health checklist when present at the repo root:
+These files are part of community health and contributor onboarding:
 
 | File | Description |
 |------|-------------|
-| [README.md](../README.md) | Project overview, **current MCP server behavior**, tool catalog, build, CI pointers. |
-| [CONTRIBUTING.md](../CONTRIBUTING.md) | Branching, build/test commands, PR expectations. |
-| [CODE_OF_CONDUCT.md](../CODE_OF_CONDUCT.md) | Contributor Covenant code of conduct. |
-| [SECURITY.md](../SECURITY.md) | How to report vulnerabilities responsibly. |
+| [README.md](../README.md) | Project summary, doc map, minimal MCP notes, layout, build, CI pointer. |
+| [CONTRIBUTING.md](../CONTRIBUTING.md) | Branching, local commands, PR expectations. |
+| [CODE_OF_CONDUCT.md](../CODE_OF_CONDUCT.md) | Contributor Covenant. |
+| [SECURITY.md](../SECURITY.md) | Responsible disclosure. |
 | [LICENSE](../LICENSE) | Apache License 2.0. |
 
-For automated checks, Markdown in the whole tree (except `LICENSE`) is linted and link-checked in CI.
+## Updating docs
+
+When you change tools, env vars, security limits, or pipeline behavior, update
+[architecture.md](architecture.md) and, if checks or fixtures move,
+[testing-and-ci.md](testing-and-ci.md). User-visible one-liners in the root
+README should stay in sync or defer here with a link.

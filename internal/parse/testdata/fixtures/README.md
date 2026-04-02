@@ -5,6 +5,11 @@ Short **synthetic** samples shaped like real platforms. They exercise
 [`TextParser`](../../text_parser.go)). Lines are **not** copied from production
 systems; formats follow public documentation.
 
+**Polyglot stacks:** fixtures `35`–`53` resemble common Java, Python, JavaScript,
+Rust, C, C++, and C# logging and observability outputs; `54_golden_stack_polyglot.log`
+is a minimal shared JSON schema (timestamp, level, service, trace_id, span_id,
+message) for stdout-friendly aggregation.
+
 | File | Format reference |
 |------|------------------|
 | `01_kubernetes_cri.log` | [Kubernetes: logging architecture](https://kubernetes.io/docs/concepts/cluster-administration/logging/) (CRI stdout/stderr line prefix) |

@@ -27,9 +27,10 @@ workflow early: `feature/…`, `fix/…`, `chore/…`, `ci/…`, etc. (see
 
 ## Development requirements
 
-- **Go** version compatible with [`go.mod`](go.mod) (currently **1.25.8+**).
-- Optional but recommended: **`golangci-lint`** aligned with CI (see
-  [`.github/workflows/ci-reusable.yml`](.github/workflows/ci-reusable.yml)).
+- **Go** version compatible with [`go.mod`](go.mod) (see the `go` directive;
+  CI installs that exact toolchain via `go-version-file`).
+- Optional but recommended: **`golangci-lint`** at the version pinned in
+  [`.github/workflows/ci-reusable.yml`](.github/workflows/ci-reusable.yml).
 
 ## Build and test
 
@@ -63,13 +64,21 @@ Markdown is linted in CI (`markdownlint-cli2`). **Relative links** in new or
 updated docs should resolve within the repository. External URLs should be
 stable (official docs, standards).
 
+Authoritative technical detail belongs in [`docs/`](docs/) (see
+[`docs/README.md`](docs/README.md)); keep the root [`README.md`](README.md)
+as a short map into that folder when you change user-visible behavior.
+
+Before pushing dependency changes, run **`go mod tidy`** and ensure
+`go.mod` / `go.sum` are committed (CI enforces a clean tidy).
+
 ## Pull request checklist
 
 - [ ] `go test ./...` and `go vet ./...` pass locally.
 - [ ] Changes are scoped to the problem you are solving (avoid unrelated
       refactors).
 - [ ] User-visible behavior or configuration changes are reflected in
-      `README.md` and/or `docs/architecture.md` when appropriate.
+      `docs/architecture.md` (and the root `README.md` only if a one-line
+      pointer or summary is needed).
 
 ## License
 
