@@ -28,6 +28,19 @@ vendor/
 *.swo
 *~
 
+# AI assistants / agent tooling (local only; never commit)
+.cursor/
+**/.cursor/
+.cursorrules
+.github/copilot-instructions.md
+.github/instructions/
+.copilot/
+.qodo/
+.amazonq/
+.windsurf/
+.continue/
+.aider*
+
 # OS
 .DS_Store
 Thumbs.db
