@@ -35,6 +35,7 @@ func (e *ExecKubectlRunner) CombinedOutput(ctx context.Context, args ...string) 
 	if err := security.ValidateKubectlArgs(args); err != nil {
 		return nil, err
 	}
+	// #nosec G204 -- argv allowlisted; binary path fixed; see security.HardenExecCmd
 	cmd := exec.CommandContext(ctx, e.bin(), args...)
 	security.HardenExecCmd(cmd)
 	return cmd.Output()
@@ -45,6 +46,7 @@ func (e *ExecKubectlRunner) StdoutPipe(ctx context.Context, args ...string) (io.
 	if err := security.ValidateKubectlArgs(args); err != nil {
 		return nil, err
 	}
+	// #nosec G204 -- argv allowlisted; binary path fixed; see security.HardenExecCmd
 	cmd := exec.CommandContext(ctx, e.bin(), args...)
 	security.HardenExecCmd(cmd)
 	stdout, err := cmd.StdoutPipe()
