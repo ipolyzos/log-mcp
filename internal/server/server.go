@@ -21,7 +21,7 @@ type Config struct {
 }
 
 // New returns an MCP server configured with the default tool registry and
-// LOG_MCP_ROOT (if set) as the file log source.
+// log sources from the environment ([logSourceFromEnv]).
 func New() *mcp.Server {
 	return NewWithConfig(Config{LogSource: logSourceFromEnv()})
 }
@@ -41,6 +41,24 @@ func NewWithConfig(cfg Config) *mcp.Server {
 }
 
 func logSourceFromEnv() source.LogSource {
+	fileSrc := fileSourceFromEnv()
+	k8sSrc := k8sSourceFromEnv()
+	switch {
+	case fileSrc != nil && k8sSrc != nil:
+		multi, err := source.NewMultiLogSource("combined", fileSrc, k8sSrc)
+		if err != nil {
+			log.Printf("log-mcp: combined log source: %v", err)
+			return fileSrc
+		}
+		return multi
+	case k8sSrc != nil:
+		return k8sSrc
+	default:
+		return fileSrc
+	}
+}
+
+func fileSourceFromEnv() *source.FileLogSource {
 	raw := strings.TrimSpace(os.Getenv("LOG_MCP_ROOT"))
 	if raw == "" {
 		return nil
@@ -62,6 +80,32 @@ func logSourceFromEnv() source.LogSource {
 		return nil
 	}
 	return fs
+}
+
+func k8sSourceFromEnv() *source.K8sLogSource {
+	raw := strings.TrimSpace(os.Getenv("LOG_MCP_K8S_NAMESPACES"))
+	if raw == "" {
+		return nil
+	}
+	var ns []string
+	for _, part := range strings.Split(raw, ",") {
+		part = strings.TrimSpace(part)
+		if part != "" {
+			ns = append(ns, part)
+		}
+	}
+	if len(ns) == 0 {
+		return nil
+	}
+	runner := &source.ExecKubectlRunner{
+		Path: strings.TrimSpace(os.Getenv("LOG_MCP_K8S_KUBECTL")),
+	}
+	k, err := source.NewK8sLogSource("kubernetes", ns, runner)
+	if err != nil {
+		log.Printf("log-mcp: ignoring LOG_MCP_K8S_NAMESPACES: %v", err)
+		return nil
+	}
+	return k
 }
 
 // Run serves MCP over stdin/stdout until the client disconnects or ctx is done.
