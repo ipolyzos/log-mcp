@@ -15,6 +15,7 @@ This document describes how **log-mcp** is structured today and how log data flo
 | MCP server | `cmd/log-mcp`, `internal/server` | stdio JSON-RPC session, tool registration, process lifecycle. |
 | Tool registry | `internal/tools` | Ordered registration of MCP tools onto `mcp.Server`. |
 | Log sources | `internal/source` | Pluggable backends that list streams and read them as lines. |
+| Log parsing | `internal/parse` | JSON and text line parsers; shared `ParsedLine` (timestamp, level, message, fields). |
 | Build metadata | `internal/buildinfo` | Static name/version for MCP `Implementation` and `version_info`. |
 
 ## MCP layer (stdio)
@@ -29,7 +30,22 @@ Log backends implement [`LogSource`](../internal/source/source.go):
 - **`List(ctx)`** — Returns the set of **log streams** currently exposed (`LogStream` carries an `ID` and display `Name`).
 - **`Read(ctx, query)`** — Opens a stream selected by `Query.StreamID` and returns a **receive-only channel** of `LogEntry` values (line number + raw line text). Reading stops when the file ends, the context is cancelled, or optional `MaxLines` / `MaxBytes` limits are hit.
 
-This interface is intentionally **line-oriented**: binary or structured logs may be layered later (parsers, codecs) without changing how bytes are pulled from disk.
+This interface is intentionally **line-oriented**: parsers consume each `LogEntry.Raw` line without changing how bytes are pulled from disk.
+
+## Log parsing
+
+Package [`internal/parse`](../internal/parse/parsed.go) turns a single line into a `ParsedLine`:
+
+- **`Timestamp`** — optional `time.Time` when a value could be resolved (RFC3339 strings, unix seconds/millis in JSON, RFC3339-ish prefix in text).
+- **`Level`** — normalized uppercase level (`INFO`, `WARN`, `ERROR`, …).
+- **`Message`** — primary human-readable payload when detected; otherwise the trimmed line.
+- **`Fields`** — remaining key/value pairs: in JSON, keys not consumed as timestamp/level/message; in text, `key=value` / `key="value"` segments.
+
+**`JSONParser`** accepts one JSON **object** per line and maps common keys (`@timestamp`, `timestamp`, `ts`, `level`, `msg`, …). Values are flattened to strings in `Fields` (non-scalars are JSON-encoded).
+
+**`TextParser`** uses lightweight regex heuristics: optional RFC3339 prefix, `[LEVEL]` or bare level token, then `key=value` pairs stripped from the message body.
+
+**`AutoParser`** tries JSON when the trimmed line starts with `{`; invalid JSON falls back to `TextParser` so mixed log files still yield a useful `ParsedLine`.
 
 ### File-backed source
 
@@ -46,4 +62,4 @@ Streaming uses a large `bufio.Reader` buffer and `ReadString('\n')` so individua
 
 - MCP tools that call `LogSource.List` / `Read` with redaction and rate limits.
 - Additional sources (journald, object storage, Kubernetes API) behind the same `LogSource` interface.
-- Optional tail/follow semantics and structured log parsing.
+- Optional tail/follow semantics, nested JSON log models, and richer schema-aware parsers.
