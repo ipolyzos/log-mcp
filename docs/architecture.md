@@ -17,6 +17,7 @@ This document describes how **log-mcp** is structured today and how log data flo
 | Log sources | `internal/source` | Pluggable backends that list streams and read them as lines. |
 | Log parsing | `internal/parse` | JSON and text line parsers; shared `ParsedLine` (timestamp, level, message, fields). |
 | Normalization | `internal/normalize` | Deterministic masking (UUID, IP, tokens) and normalization (timestamps, dynamic IDs). |
+| Processing pipeline | `internal/pipeline` | Bounded-channel stream: source → parse → normalize → analyze (no full-buffering of the log). |
 | Build metadata | `internal/buildinfo` | Static name/version for MCP `Implementation` and `version_info`. |
 
 ## MCP layer (stdio)
@@ -56,6 +57,19 @@ Package [`internal/normalize`](../internal/normalize/normalize.go) implements [`
 
 **Normalization:** RFC3339-like timestamps and 10-digit unix seconds (UTC, years 2000–2100) are rewritten to a canonical UTC string; long decimal runs (15–22 digits) become `<num_id>` and 16–40 character hex runs `<hex_id>` (after UUID masking so dashed UUIDs are not double-handled).
 
+## Streaming processing pipeline
+
+Package [`internal/pipeline`](../internal/pipeline/pipeline.go) composes existing pieces into a **line-at-a-time** pipeline:
+
+1. **Source** — [`LogSource.Read`](../internal/source/source.go) yields `LogEntry` values on a channel (same contract as today).
+2. **Parser** — each `Raw` line is parsed with a [`LineParser`](../internal/pipeline/pipeline.go) (default [`parse.AutoParser`](../internal/parse/text_parser.go)).
+3. **Normalizer** — [`normalize.Apply`](../internal/normalize/normalize.go) runs on the **original** raw line; the structured view for downstream use is produced by **parsing again** on the redacted string so `Parsed` fields match the masked bytes.
+4. **Analyzer** — optional [`Analyzer`](../internal/pipeline/pipeline.go) hook receives [`NormalizedEntry`](../internal/pipeline/pipeline.go) per line (metrics, routing, etc.).
+
+Stages communicate through **Go channels** whose capacity is set by [`Pipeline.ChannelBuffer`](../internal/pipeline/pipeline.go) (default 32). Only a bounded number of in-flight `LogEntry` / intermediate structs exist at once; the implementation does **not** read the whole file into a slice before processing.
+
+Cancellation is honored at the **source**: when the [`context.Context`] passed to [`Pipeline.Run`] is cancelled, producers such as [`FileLogSource`](../internal/source/file.go) stop sending and close their output channel; workers drain connected channels and exit so the result channel closes.
+
 ### File-backed source
 
 [`FileLogSource`](../internal/source/file.go) is configured with one or more **roots**, each an absolute path after construction:
@@ -69,6 +83,6 @@ Streaming uses a large `bufio.Reader` buffer and `ReadString('\n')` so individua
 
 ## Future direction (not implemented)
 
-- MCP tools that call `LogSource.List` / `Read` with redaction and rate limits.
+- MCP tools that call `LogSource.List` / `Read` and the streaming pipeline with redaction and rate limits.
 - Additional sources (journald, object storage, Kubernetes API) behind the same `LogSource` interface.
 - Optional tail/follow semantics, nested JSON log models, and richer schema-aware parsers.
