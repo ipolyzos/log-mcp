@@ -1,13 +1,10 @@
 package source
 
 import (
-	"bufio"
 	"context"
 	"fmt"
-	"io"
 	"os"
 	"path/filepath"
-	"strings"
 
 	"github.com/ipolyzos/log-mcp/internal/security"
 )
@@ -114,42 +111,5 @@ func (f *FileLogSource) allowedFile(abs string) bool {
 }
 
 func (f *FileLogSource) streamFile(ctx context.Context, file *os.File, q Query, ch chan<- LogEntry) {
-	defer close(ch)
-	defer func() { _ = file.Close() }()
-
-	br := bufio.NewReaderSize(file, 1<<20) // 1 MiB buffer for wide lines / throughput
-	var (
-		lineNum   int64
-		bytesRead int64
-	)
-	for {
-		if err := ctx.Err(); err != nil {
-			return
-		}
-		line, err := br.ReadString('\n')
-		if line != "" {
-			lineNum++
-			raw := strings.TrimSuffix(strings.TrimSuffix(line, "\r\n"), "\n")
-			raw = truncateLineBytes(raw, q.MaxLineBytes)
-			if q.MaxLines > 0 && lineNum > q.MaxLines {
-				return
-			}
-			n := int64(len(raw))
-			if q.MaxBytes > 0 && bytesRead+n > q.MaxBytes {
-				return
-			}
-			bytesRead += n
-			select {
-			case <-ctx.Done():
-				return
-			case ch <- LogEntry{LineNumber: lineNum, Raw: raw}:
-			}
-		}
-		if err != nil {
-			if err == io.EOF {
-				return
-			}
-			return
-		}
-	}
+	streamReaderLines(ctx, file, q, ch)
 }

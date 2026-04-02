@@ -75,12 +75,12 @@ type LogLineJSON struct {
 }
 
 // RegisterLogTools registers read_logs, search_logs, and filter_logs. If src is
-// nil, handlers return a tool error asking to configure LOG_MCP_ROOT.
+// nil, handlers return a tool error asking to configure a log source (env).
 func RegisterLogTools(src source.LogSource) Installer {
 	return func(s *mcp.Server) {
 		mcp.AddTool(s, &mcp.Tool{
 			Name:        ToolNameReadLogs,
-			Description: "Read log lines from a stream with optional limits and filters (time range, level, keyword or keywords_any OR list). Lines are redacted. Use stream_id from the source (e.g. absolute file path under LOG_MCP_ROOT). When no filters are set, reads sequentially up to max_lines without scanning the whole file.",
+			Description: "Read log lines from a stream with optional limits and filters (time range, level, keyword or keywords_any OR list). Lines are redacted. Use stream_id from the source (absolute path under LOG_MCP_ROOT, k8s://…, docker://…, cf://…, or pipe:// when LOG_MCP_PIPE_FD is set). When no filters are set, reads sequentially up to max_lines without scanning the whole file.",
 		}, readLogsHandler(src))
 		mcp.AddTool(s, &mcp.Tool{
 			Name:        ToolNameSearchLogs,
@@ -191,7 +191,7 @@ func ptrInt64(p *int64) int64 {
 
 func requireLogSource(src source.LogSource) error {
 	if src == nil {
-		return fmt.Errorf("log access not configured: set LOG_MCP_ROOT to a readable file or directory (use OS path list separator for multiple roots)")
+		return fmt.Errorf("log access not configured: set LOG_MCP_ROOT, LOG_MCP_PIPE_FD (fd >= 3 for piped logs), or another configured backend (use OS path list separator for multiple roots)")
 	}
 	return nil
 }

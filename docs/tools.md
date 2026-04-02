@@ -44,7 +44,7 @@ source supports it).
 
 | Direction | Field | Type | Required | Notes |
 |-----------|-------|------|----------|-------|
-| Params | `stream_id` | string | yes | Stream identifier from the configured source. |
+| Params | `stream_id` | string | yes | Stream identifier: file path, `k8s://…`, `docker://…`, `cf://…`, or **`pipe://`** when `LOG_MCP_PIPE_FD` is set (fd ≥ 3; see [usage.md](usage.md#piped-logs-shell)). |
 | Params | `max_lines` | int64 | no | Default **500**; capped by `LOG_MCP_SEC_MAX_OUTPUT_LINES`. |
 | Params | `since` | string | no | RFC3339 inclusive lower bound. |
 | Params | `until` | string | no | RFC3339 inclusive upper bound. |

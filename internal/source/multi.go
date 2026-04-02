@@ -6,11 +6,12 @@ import (
 	"strings"
 )
 
-// MultiLogSource merges filesystem, Kubernetes, Docker, and/or Cloud Foundry sources.
-// Stream IDs with prefix k8s://, docker://, or cf:// are routed to the matching backend;
-// all others go to the file source when configured.
+// MultiLogSource merges optional pipe, filesystem, Kubernetes, Docker, and/or
+// Cloud Foundry sources. Stream IDs pipe://, k8s://, docker://, and cf:// are
+// routed first; other IDs go to the file source when configured.
 type MultiLogSource struct {
 	name   string
+	pipe   *PipeLogSource
 	file   *FileLogSource
 	k8s    *K8sLogSource
 	docker *DockerLogSource
@@ -18,14 +19,14 @@ type MultiLogSource struct {
 }
 
 // NewMultiLogSource returns a combined source. At least one backend must be non-nil.
-func NewMultiLogSource(name string, file *FileLogSource, k8s *K8sLogSource, docker *DockerLogSource, cf *CFLogSource) (*MultiLogSource, error) {
+func NewMultiLogSource(name string, pipe *PipeLogSource, file *FileLogSource, k8s *K8sLogSource, docker *DockerLogSource, cf *CFLogSource) (*MultiLogSource, error) {
 	if name == "" {
 		return nil, fmt.Errorf("source: multi source name is empty")
 	}
-	if file == nil && k8s == nil && docker == nil && cf == nil {
+	if pipe == nil && file == nil && k8s == nil && docker == nil && cf == nil {
 		return nil, fmt.Errorf("source: multi source needs at least one backend")
 	}
-	return &MultiLogSource{name: name, file: file, k8s: k8s, docker: docker, cf: cf}, nil
+	return &MultiLogSource{name: name, pipe: pipe, file: file, k8s: k8s, docker: docker, cf: cf}, nil
 }
 
 // Name implements [LogSource].
@@ -36,6 +37,13 @@ func (m *MultiLogSource) Name() string {
 // List implements [LogSource].
 func (m *MultiLogSource) List(ctx context.Context) ([]LogStream, error) {
 	var out []LogStream
+	if m.pipe != nil {
+		a, err := m.pipe.List(ctx)
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, a...)
+	}
 	if m.file != nil {
 		a, err := m.file.List(ctx)
 		if err != nil {
@@ -69,6 +77,13 @@ func (m *MultiLogSource) List(ctx context.Context) ([]LogStream, error) {
 
 // Read implements [LogSource].
 func (m *MultiLogSource) Read(ctx context.Context, q Query) (<-chan LogEntry, error) {
+	sid := strings.TrimSpace(q.StreamID)
+	if sid == PipeStreamID {
+		if m.pipe == nil {
+			return nil, fmt.Errorf("source: pipe log source is not configured")
+		}
+		return m.pipe.Read(ctx, q)
+	}
 	if strings.HasPrefix(q.StreamID, k8sStreamPrefix) {
 		if m.k8s == nil {
 			return nil, fmt.Errorf("source: kubernetes log source is not configured")

@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Piped log input**: optional **`LOG_MCP_PIPE_FD`** (integer **≥ 3**) and **`stream_id` `pipe://`** to read line-delimited logs from an alternate file descriptor while MCP stdio uses fds 0–2 ([internal/source/pipe.go](internal/source/pipe.go), [internal/server/server.go](internal/server/server.go)). Documented in [usage.md](docs/usage.md#piped-logs-shell) and [architecture.md](docs/architecture.md).
+
 - **CI**: **`go-bench-smoke`** job runs a short **`go test -bench`** pass in [`ci-reusable.yml`](.github/workflows/ci-reusable.yml).
 - **Tests**: golden JSON fixtures under [`internal/tools/testdata/golden/`](internal/tools/testdata/golden/) for stable tool result shapes ([`golden_json_test.go`](internal/tools/golden_json_test.go)).
 - **Docs**: [kubernetes-runbook.md](docs/kubernetes-runbook.md) for K8s stream IDs and CRI-oriented checks.

@@ -27,6 +27,7 @@ Set **at least one** of the following before starting the process (see
 | `LOG_MCP_K8S_NAMESPACES` | Comma-separated namespace allowlist → `kubectl` logs. |
 | `LOG_MCP_DOCKER_CONTAINERS` | Comma-separated container name allowlist → `docker logs`. |
 | `LOG_MCP_CF_APPS` | Comma-separated Cloud Foundry app allowlist → `cf logs`. |
+| `LOG_MCP_PIPE_FD` | Integer **≥ 3**: read piped log lines from that OS file descriptor; MCP stdio stays on 0–2. Use **`stream_id` `pipe://`**. See [Piped logs (shell)](#piped-logs-shell) below. |
 
 Optional overrides: `LOG_MCP_K8S_KUBECTL`, `LOG_MCP_DOCKER_DOCKER`, `LOG_MCP_CF_CLI`.
 
@@ -67,12 +68,46 @@ env block in their config. Typical shape:
 
 Exact config keys depend on the host application; refer to its MCP documentation.
 
+
+## Piped logs (shell)
+
+MCP uses **stdin (fd 0)** for JSON-RPC, so you cannot attach raw application logs to
+the same stdin as the server. Instead, open logs on **another fd** and set
+**`LOG_MCP_PIPE_FD`** to that number (must be **≥ 3**). Tools then use **`stream_id`:
+`pipe://`**.
+
+Examples (bash):
+
+```bash
+# File on fd 3, MCP on stdin/stdout as usual
+exec 3< /var/log/myapp/current
+export LOG_MCP_PIPE_FD=3
+./log-mcp
+```
+
+```bash
+# Process substitution
+exec 3< <(kubectl logs deploy/api -n prod --tail=500)
+export LOG_MCP_PIPE_FD=3
+./log-mcp
+```
+
+```bash
+# One-shot: attach process substitution as fd 3 (bash, Linux /dev/fd)
+LOG_MCP_PIPE_FD=3 ./log-mcp 3< <(cat access.log)
+```
+
+Do **not** pipe application logs into **stdin** while using MCP stdio — fd **0** must stay the MCP JSON-RPC stream from the host.
+
+Each **`read_logs`** / scan call opens the fd again from the start until closed by
+the reader; for one-shot pipes, a single tool read typically consumes the stream.
+
 ## Tool usage patterns
 
 ### Read recent lines
 
 Call **`read_logs`** with `stream_id` set to the absolute file path (under
-`LOG_MCP_ROOT`) or a prefixed remote id (`k8s://…`, `docker://…`, `cf://…`). Omit
+`LOG_MCP_ROOT`), a prefixed remote id (`k8s://…`, `docker://…`, `cf://…`), or **`pipe://`** when using `LOG_MCP_PIPE_FD`. Omit
 filters and set `max_lines` for a bounded tail-oriented read.
 
 ### Search and filter

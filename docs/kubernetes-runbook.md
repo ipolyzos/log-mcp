@@ -56,3 +56,7 @@ and **`detect_anomalies`** without JSON log drivers. See
 - **`stream_id` rejected** — IDs must match the **`k8s://`** pattern and an
   existing pod (and container if specified) in an allowlisted namespace.
 - See [troubleshooting.md](troubleshooting.md) for kubectl/docker/stdio issues.
+
+## Piping kubectl logs without a temp file
+
+You can attach **`kubectl logs`** (or similar) as an extra fd and set **`LOG_MCP_PIPE_FD`**, then use **`stream_id` `pipe://`** with **`read_logs`** / analysis tools. Example: `LOG_MCP_PIPE_FD=3 ./log-mcp 3< <(kubectl logs deploy/api -n prod --tail=2000)`. See [usage.md](usage.md#piped-logs-shell).
