@@ -166,3 +166,46 @@ func TestDetectAnomalies_lowSample_scannedLessThanSegmentCount(t *testing.T) {
 		t.Fatalf("expected no spikes: %+v", rep.LevelSpikeSegments)
 	}
 }
+
+func TestDetectAnomalies_segmentCountsAndWarnBursts(t *testing.T) {
+	t.Parallel()
+	var lines []string
+	for range 8 {
+		lines = append(lines, `{"level":"WARN","msg":"same warn","x":1}`)
+	}
+	for range 12 {
+		lines = append(lines, `{"level":"INFO","msg":"ok"}`)
+	}
+	src := &sliceSource{id: "w", lines: lines}
+	rep, err := DetectAnomalies(context.Background(), src, "w", AnomalyOptions{
+		MaxScanLines:      500,
+		SegmentCount:      5,
+		ZScoreThreshold:   3,
+		MinRepeatErrors:   6,
+		IncludeWarnBursts: true,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if rep.SegmentCount != 5 {
+		t.Fatalf("segment_count: %d", rep.SegmentCount)
+	}
+	if rep.ActiveSegmentCount < 1 {
+		t.Fatalf("active_segment_count: %d", rep.ActiveSegmentCount)
+	}
+	if len(rep.RepeatedWarnBursts) < 1 || rep.RepeatedWarnBursts[0].Count < 6 {
+		t.Fatalf("warn bursts: %+v", rep.RepeatedWarnBursts)
+	}
+	rep2, err := DetectAnomalies(context.Background(), src, "w", AnomalyOptions{
+		MaxScanLines:      500,
+		SegmentCount:      5,
+		MinRepeatErrors:   6,
+		IncludeWarnBursts: false,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(rep2.RepeatedWarnBursts) != 0 {
+		t.Fatalf("expected no warn bursts: %+v", rep2.RepeatedWarnBursts)
+	}
+}

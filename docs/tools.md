@@ -205,12 +205,16 @@ Segment-based error-rate spikes and repeated identical ERROR lines (see
 | Params | `segment_count` | int64 | no | ≥ **2**; default **15**. |
 | Params | `z_score_threshold` | float64 | no | Default **2**. |
 | Params | `min_repeat_errors` | int64 | no | Default **6**. |
+| Params | `include_warn_bursts` | bool | no | When **true**, also report highly repeated identical **WARN**/**WARNING** lines (same threshold as errors). |
 | Result | `stream_id` | string | yes | |
 | Result | `scanned_lines` | int64 | yes | |
 | Result | `truncated` | bool | yes | |
 | Result | `low_sample` | bool | yes | **true** when `scanned_lines` &lt; `segment_count` or fewer than two segments received lines; **level_spike_segments** is then empty (z-scores need at least two populated segments). |
+| Result | `segment_count` | int | yes | Number of line-based segments used for bucketing (default **15**). |
+| Result | `active_segment_count` | int | yes | Segments that received at least one line. |
 | Result | `level_spike_segments` | array | yes | `segment_index`, `line_start`, `line_end`, `error_count`, `mean_errors`, `std_dev`, `z_score`. |
 | Result | `repeated_errors` | array | yes | `fingerprint`, `sample_message`, `count`, `first_line`, `last_line`. |
+| Result | `repeated_warn_bursts` | array | no | Same shape as `repeated_errors`; present only when `include_warn_bursts` was true and qualifying WARN lines exist. |
 
 ---
 

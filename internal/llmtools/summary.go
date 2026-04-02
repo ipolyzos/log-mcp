@@ -86,6 +86,9 @@ func BuildIncidentBrief(obj map[string]json.RawMessage) (*IncidentBrief, error) 
 	var da detectAnomaliesShape
 	_ = json.Unmarshal(mustRaw(obj, "level_spike_segments"), &da.LevelSpikeSegments)
 	_ = json.Unmarshal(mustRaw(obj, "repeated_errors"), &da.RepeatedErrors)
+	if raw, ok := obj["repeated_warn_bursts"]; ok {
+		_ = json.Unmarshal(raw, &da.RepeatedWarnBursts)
+	}
 	_ = json.Unmarshal(obj["scanned_lines"], &da.ScannedLines)
 	_ = json.Unmarshal(obj["truncated"], &da.Truncated)
 	if raw, ok := obj["low_sample"]; ok {
@@ -102,13 +105,16 @@ func BuildIncidentBrief(obj map[string]json.RawMessage) (*IncidentBrief, error) 
 	if _, ok := obj["repeated_errors"]; ok {
 		kind = append(kind, "repeated_errors")
 	}
+	if _, ok := obj["repeated_warn_bursts"]; ok {
+		kind = append(kind, "repeated_warn_bursts")
+	}
 	if len(kind) == 0 {
 		kind = append(kind, "partial")
 	}
 
 	var bullets []string
 	if da.LowSample {
-		bullets = append(bullets, "Anomaly inputs are low_sample: segment z-score spikes were not computed (short stream vs segment_count or fewer than two active segments); treat geographic spike claims cautiously and rely on repeated_errors / summarize_errors when present.")
+		bullets = append(bullets, "Anomaly inputs are low_sample: segment z-score spikes were not computed (short stream vs segment_count or fewer than two active segments); treat geographic spike claims cautiously and rely on repeated_errors, repeated_warn_bursts, or summarize_errors when present.")
 	}
 	headline := "Incident summary (from structured tools only)"
 	if se.ErrorLineCount > 0 {
@@ -133,6 +139,12 @@ func BuildIncidentBrief(obj map[string]json.RawMessage) (*IncidentBrief, error) 
 			continue
 		}
 		bullets = append(bullets, fmt.Sprintf("Repeated identical ERROR×%d (lines %d–%d): %s", r.Count, r.FirstLine, r.LastLine, truncate(r.SampleMessage, 100)))
+	}
+	for _, r := range da.RepeatedWarnBursts {
+		if r.Count == 0 {
+			continue
+		}
+		bullets = append(bullets, fmt.Sprintf("Repeated identical WARN×%d (lines %d–%d): %s", r.Count, r.FirstLine, r.LastLine, truncate(r.SampleMessage, 100)))
 	}
 	if len(bullets) == 0 {
 		bullets = append(bullets, "No ranked error groups or anomaly segments in this summary (may be empty scan or clean window).")
@@ -188,6 +200,7 @@ type groupShape struct {
 type detectAnomaliesShape struct {
 	LevelSpikeSegments []spikeShape `json:"level_spike_segments"`
 	RepeatedErrors     []burstShape `json:"repeated_errors"`
+	RepeatedWarnBursts []burstShape `json:"repeated_warn_bursts"`
 	ScannedLines       int64        `json:"scanned_lines"`
 	Truncated          bool         `json:"truncated"`
 	LowSample          bool         `json:"low_sample"`
