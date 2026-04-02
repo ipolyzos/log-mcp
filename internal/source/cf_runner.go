@@ -29,6 +29,7 @@ func (e *ExecCFRunner) CombinedOutput(ctx context.Context, args ...string) ([]by
 	if err := security.ValidateCFArgs(args); err != nil {
 		return nil, err
 	}
+	// #nosec G204 -- argv allowlisted; binary path fixed; see security.HardenExecCmd
 	cmd := exec.CommandContext(ctx, e.bin(), args...)
 	security.HardenExecCmd(cmd)
 	return cmd.Output()

@@ -32,6 +32,7 @@ func (e *ExecDockerRunner) CombinedOutput(ctx context.Context, args ...string) (
 	if err := security.ValidateDockerArgs(args); err != nil {
 		return nil, err
 	}
+	// #nosec G204 -- argv allowlisted; binary path fixed; see security.HardenExecCmd
 	cmd := exec.CommandContext(ctx, e.bin(), args...)
 	security.HardenExecCmd(cmd)
 	return cmd.Output()
@@ -42,6 +43,7 @@ func (e *ExecDockerRunner) StdoutPipe(ctx context.Context, args ...string) (io.R
 	if err := security.ValidateDockerArgs(args); err != nil {
 		return nil, err
 	}
+	// #nosec G204 -- argv allowlisted; binary path fixed; see security.HardenExecCmd
 	cmd := exec.CommandContext(ctx, e.bin(), args...)
 	security.HardenExecCmd(cmd)
 	stdout, err := cmd.StdoutPipe()
