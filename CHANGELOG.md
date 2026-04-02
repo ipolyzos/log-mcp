@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **`detect_anomalies`**: result includes **`segment_count`** and **`active_segment_count`**; optional **`include_warn_bursts`** adds **`repeated_warn_bursts`** (same shape as **`repeated_errors`**) for WARN/WARNING lines ([internal/loganalysis/anomaly.go](internal/loganalysis/anomaly.go)). **`incident_summary`** includes warn burst bullets when present.
+
 - **Log tool results** (`read_logs`, `search_logs`, `filter_logs`): optional **`result_hint`** when **`lines`** is empty and the stream was not truncated — **`no_lines_in_stream`** for unfiltered reads, **`no_matching_lines`** when predicates excluded all lines ([internal/tools/log_tools.go](internal/tools/log_tools.go)).
 
 - **`read_logs`** / **`filter_logs`**: optional **`keywords_any`** string array for **OR** substring matching on redacted lines (AND with time/level); mutually exclusive with **`keyword`** in one call; capped at 32 terms × 256 bytes each ([internal/logtool/filter.go](internal/logtool/filter.go), [internal/tools/log_tools.go](internal/tools/log_tools.go)).

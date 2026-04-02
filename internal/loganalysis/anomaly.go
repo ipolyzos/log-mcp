@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/ipolyzos/log-mcp/internal/logcorr"
+	"github.com/ipolyzos/log-mcp/internal/pipeline"
 	"github.com/ipolyzos/log-mcp/internal/security"
 	"github.com/ipolyzos/log-mcp/internal/source"
 )
@@ -24,10 +25,11 @@ const (
 
 // AnomalyOptions configures [DetectAnomalies].
 type AnomalyOptions struct {
-	MaxScanLines    int64
-	SegmentCount    int
-	ZScoreThreshold float64
-	MinRepeatErrors int64
+	MaxScanLines      int64
+	SegmentCount      int
+	ZScoreThreshold   float64
+	MinRepeatErrors   int64
+	IncludeWarnBursts bool
 }
 
 // AnomalyReport summarizes statistically unusual regions and repeated errors.
@@ -37,9 +39,12 @@ type AnomalyReport struct {
 	Truncated    bool
 	// LowSample is true when segment-wise z-scores are not statistically meaningful:
 	// fewer than two segments received lines, or scanned_lines < segment_count.
-	LowSample          bool
-	LevelSpikeSegments []LevelSpikeSegment
-	RepeatedErrors     []RepeatedErrorBurst
+	LowSample            bool
+	SegmentCount         int
+	ActiveSegmentCount   int
+	LevelSpikeSegments   []LevelSpikeSegment
+	RepeatedErrors       []RepeatedErrorBurst
+	RepeatedWarnBursts   []RepeatedErrorBurst
 }
 
 // LevelSpikeSegment is a contiguous slice of the scan with unusually many error-level lines vs other slices.
@@ -120,6 +125,10 @@ func DetectAnomalies(ctx context.Context, src source.LogSource, streamID string,
 	}
 
 	bursts := make(map[uint64]*burstAgg)
+	var warnBursts map[uint64]*burstAgg
+	if opts.IncludeWarnBursts {
+		warnBursts = make(map[uint64]*burstAgg)
+	}
 	var scanned int64
 	for r := range out {
 		scanned++
@@ -130,19 +139,10 @@ func DetectAnomalies(ctx context.Context, src source.LogSource, streamID string,
 		}
 		if isErrorLevel(r.Parsed.Level) {
 			segs[si].errCount++
-			h := lineHash(r.Redacted)
-			b := bursts[h]
-			if b == nil {
-				b = &burstAgg{firstLn: ln, sample: sampleMessage(r.Parsed, r.Redacted)}
-				bursts[h] = b
-			}
-			b.count++
-			if b.firstLn == 0 || ln < b.firstLn {
-				b.firstLn = ln
-			}
-			if ln > b.lastLn {
-				b.lastLn = ln
-			}
+			absorbBurst(bursts, r)
+		}
+		if warnBursts != nil && isWarnLevel(r.Parsed.Level) {
+			absorbBurst(warnBursts, r)
 		}
 		if ln < segs[si].lineMin {
 			segs[si].lineMin = ln
@@ -199,6 +199,44 @@ func DetectAnomalies(ctx context.Context, src source.LogSource, streamID string,
 		spikes = spikes[:maxLevelSpikeReports]
 	}
 
+	rep := finalizeBursts(bursts, minRep)
+	var warnRep []RepeatedErrorBurst
+	if warnBursts != nil {
+		warnRep = finalizeBursts(warnBursts, minRep)
+	}
+
+	trunc := maxScan > 0 && scanned >= maxScan
+	return &AnomalyReport{
+		StreamID:           streamID,
+		ScannedLines:       scanned,
+		Truncated:          trunc,
+		LowSample:          lowSample,
+		SegmentCount:       segN,
+		ActiveSegmentCount: len(activeIdx),
+		LevelSpikeSegments: spikes,
+		RepeatedErrors:     rep,
+		RepeatedWarnBursts: warnRep,
+	}, nil
+}
+
+func absorbBurst(m map[uint64]*burstAgg, r pipeline.Result) {
+	ln := r.LineNumber
+	h := lineHash(r.Redacted)
+	b := m[h]
+	if b == nil {
+		b = &burstAgg{firstLn: ln, sample: sampleMessage(r.Parsed, r.Redacted)}
+		m[h] = b
+	}
+	b.count++
+	if b.firstLn == 0 || ln < b.firstLn {
+		b.firstLn = ln
+	}
+	if ln > b.lastLn {
+		b.lastLn = ln
+	}
+}
+
+func finalizeBursts(bursts map[uint64]*burstAgg, minRep int64) []RepeatedErrorBurst {
 	var rep []RepeatedErrorBurst
 	for h, b := range bursts {
 		if b.count < minRep {
@@ -221,21 +259,21 @@ func DetectAnomalies(ctx context.Context, src source.LogSource, streamID string,
 	if len(rep) > maxBurstReports {
 		rep = rep[:maxBurstReports]
 	}
-
-	trunc := maxScan > 0 && scanned >= maxScan
-	return &AnomalyReport{
-		StreamID:           streamID,
-		ScannedLines:       scanned,
-		Truncated:          trunc,
-		LowSample:          lowSample,
-		LevelSpikeSegments: spikes,
-		RepeatedErrors:     rep,
-	}, nil
+	return rep
 }
 
 func isErrorLevel(lvl string) bool {
 	switch strings.ToUpper(strings.TrimSpace(lvl)) {
 	case "ERROR", "ERR", "FATAL", "CRITICAL", "PANIC", "SEVERE":
+		return true
+	default:
+		return false
+	}
+}
+
+func isWarnLevel(lvl string) bool {
+	switch strings.ToUpper(strings.TrimSpace(lvl)) {
+	case "WARN", "WARNING":
 		return true
 	default:
 		return false
