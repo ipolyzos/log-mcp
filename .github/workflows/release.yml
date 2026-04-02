@@ -1,0 +1,79 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build (${{ matrix.goos }}/${{ matrix.goarch }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - goos: linux
+            goarch: amd64
+          - goos: linux
+            goarch: arm64
+          - goos: darwin
+            goarch: amd64
+          - goos: darwin
+            goarch: arm64
+          - goos: windows
+            goarch: amd64
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Build and package
+        env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+          VERSION: ${{ github.ref_name }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          binary=log-mcp
+          if [[ "$GOOS" == "windows" ]]; then binary=log-mcp.exe; fi
+          ldflags="-s -w -X github.com/ipolyzos/log-mcp/internal/buildinfo.Version=${VERSION}"
+          GOOS="$GOOS" GOARCH="$GOARCH" go build -trimpath -ldflags "$ldflags" -o "$binary" ./cmd/log-mcp
+          stem="log-mcp_${VERSION}_${GOOS}_${GOARCH}"
+          if [[ "$GOOS" == "windows" ]]; then
+            zip "${stem}.zip" "$binary"
+            echo "asset=${stem}.zip" >> "$GITHUB_OUTPUT"
+          else
+            tar czvf "${stem}.tar.gz" "$binary"
+            echo "asset=${stem}.tar.gz" >> "$GITHUB_OUTPUT"
+          fi
+        id: pack
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist-${{ matrix.goos }}-${{ matrix.goarch }}
+          path: ${{ steps.pack.outputs.asset }}
+
+  release:
+    name: Publish GitHub Release
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*
+          generate_release_notes: true

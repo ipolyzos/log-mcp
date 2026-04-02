@@ -4,6 +4,7 @@ package buildinfo
 const (
 	// Name is the MCP server implementation name.
 	Name = "log-mcp"
-	// Version is the server semantic version (override with -ldflags for releases).
-	Version = "0.1.0"
 )
+
+// Version is the server semantic version (override with -ldflags for releases).
+var Version = "0.1.0"
