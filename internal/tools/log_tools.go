@@ -89,6 +89,7 @@ func RegisterLogTools(src source.LogSource) Installer {
 		}, filterLogsHandler(src))
 		registerSummarizeErrors(s, src)
 		registerCorrelationTools(s, src)
+		registerAdvancedAnalysis(s, src)
 	}
 }
 

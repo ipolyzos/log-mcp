@@ -45,6 +45,8 @@ func TestServer_LogTools_listedWithDefaults(t *testing.T) {
 		tools.ToolNameSummarizeErrors,
 		tools.ToolNameGroupByField,
 		tools.ToolNameCorrelateEvents,
+		tools.ToolNameDetectAnomalies,
+		tools.ToolNameExtractTraceFlow,
 	} {
 		if !slices.Contains(names, want) {
 			t.Fatalf("missing tool %q in %v", want, names)
@@ -306,6 +308,90 @@ func TestServer_LogTools_correlation(t *testing.T) {
 	}
 	if len(re.Events) != 1 {
 		t.Fatalf("correlate_events request: %d", len(re.Events))
+	}
+}
+
+func TestServer_LogTools_advancedAnalysis(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	root := t.TempDir()
+	path := filepath.Join(root, "adv.log")
+	content := strings.Join([]string{
+		`{"level":"INFO","msg":"n"}`,
+		`{"level":"ERROR","msg":"repeat err"}`,
+		`{"level":"ERROR","msg":"repeat err"}`,
+		`{"level":"ERROR","msg":"repeat err"}`,
+		`{"level":"ERROR","msg":"repeat err"}`,
+		`{"level":"ERROR","msg":"repeat err"}`,
+		`{"level":"ERROR","msg":"repeat err"}`,
+		`{"level":"INFO","msg":"t1a","trace_id":"TF","service":"svc"}`,
+		`{"level":"WARN","msg":"t1b","trace_id":"TF"}`,
+	}, "\n") + "\n"
+	if err := os.WriteFile(path, []byte(content), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	fs, err := source.NewFileLogSource("t", root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	srv := NewWithConfig(Config{LogSource: fs})
+	ct, st := mcp.NewInMemoryTransports()
+	if _, err := srv.Connect(ctx, st, nil); err != nil {
+		t.Fatal(err)
+	}
+	client := mcp.NewClient(&mcp.Implementation{Name: "test-client", Version: "0"}, nil)
+	session, err := client.Connect(ctx, ct, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = session.Close() })
+
+	daRes, err := session.CallTool(ctx, &mcp.CallToolParams{
+		Name: tools.ToolNameDetectAnomalies,
+		Arguments: map[string]any{
+			"stream_id":         path,
+			"min_repeat_errors": float64(5),
+		},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if daRes.IsError {
+		t.Fatalf("detect_anomalies: %+v", daRes)
+	}
+	var da tools.DetectAnomaliesOutput
+	if err := decodeStructured(daRes, &da); err != nil {
+		t.Fatal(err)
+	}
+	if da.ScannedLines < 1 {
+		t.Fatalf("anomaly scan: %+v", da)
+	}
+	if len(da.RepeatedErrors) < 1 {
+		t.Fatalf("expected repeated_errors: %+v", da)
+	}
+
+	efRes, err := session.CallTool(ctx, &mcp.CallToolParams{
+		Name: tools.ToolNameExtractTraceFlow,
+		Arguments: map[string]any{
+			"stream_id": path,
+			"trace_id":  "TF",
+		},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if efRes.IsError {
+		t.Fatalf("extract_trace_flow: %+v", efRes)
+	}
+	var ef tools.ExtractTraceFlowOutput
+	if err := decodeStructured(efRes, &ef); err != nil {
+		t.Fatal(err)
+	}
+	if len(ef.Steps) != 2 {
+		t.Fatalf("flow steps: %+v", ef.Steps)
+	}
+	if ef.Steps[0].Service != "svc" {
+		t.Fatalf("service: %+v", ef.Steps[0])
 	}
 }
 

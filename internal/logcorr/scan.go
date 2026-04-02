@@ -17,3 +17,8 @@ func streamResults(ctx context.Context, src source.LogSource, q source.Query) (<
 	}
 	return pl.Run(ctx)
 }
+
+// StreamPipeline runs the same redaction pipeline as group_by_field / correlate_events.
+func StreamPipeline(ctx context.Context, src source.LogSource, q source.Query) (<-chan pipeline.Result, error) {
+	return streamResults(ctx, src, q)
+}
