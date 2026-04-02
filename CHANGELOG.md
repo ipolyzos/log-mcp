@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Tests
+
+- Stdio integration coverage for **`filter_logs`** JSON arguments (RFC3339 window and level+keyword AND) against the Kubernetes CRI fixture ([`integration_stdio_test.go`](internal/server/integration_stdio_test.go)).
+
 ### Planned
 
 - Nothing else listed yet; see [GitHub issues](https://github.com/ipolyzos/log-mcp/issues).
