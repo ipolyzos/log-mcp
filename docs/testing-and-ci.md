@@ -1,7 +1,8 @@
 # Testing and continuous integration
 
 How **log-mcp** is verified in development and in GitHub Actions. For design and
-tool behavior, see [architecture.md](architecture.md).
+sources, see [architecture.md](architecture.md); for tool JSON, see [tools.md](tools.md);
+for contributor workflow, see [development.md](development.md).
 
 ## Go tests
 
