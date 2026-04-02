@@ -1,0 +1,3 @@
+# Azure Functions / Application Insights style JSON trace (synthetic).
+# Ref: https://learn.microsoft.com/en-us/azure/azure-functions/functions-monitoring
+{"time":"2024-06-15T10:48:00.1234567Z","level":"Information","message":"Executing 'HttpTrigger' (Reason='This function was programmatically called via the Azure Functions host.')","properties":{"InvocationId":"00000000-0000-0000-0000-000000000001"}}

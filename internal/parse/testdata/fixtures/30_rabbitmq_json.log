@@ -1,0 +1,3 @@
+# RabbitMQ JSON log format (3.13+ style; synthetic).
+# Ref: https://www.rabbitmq.com/docs/logging#json
+{"time":"2024-06-15T11:02:00.123+00:00","level":"warning","msg":"Deprecated features: `management_metrics_collection`: feature flag is deprecated"}

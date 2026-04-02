@@ -1,0 +1,4 @@
+# nginx combined log format (synthetic hosts).
+# Ref: https://nginx.org/en/docs/http/ngx_http_log_module.html
+127.0.0.1 - - [15/Jun/2024:10:32:00 +0000] "GET /api/v1/ready HTTP/1.1" 200 42 "-" "kube-probe/1.29"
+10.0.1.5 - frank [15/Jun/2024:10:32:01 +0000] "POST /register HTTP/1.1" 499 0 "-" "curl/8.0"

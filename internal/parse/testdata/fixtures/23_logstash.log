@@ -1,0 +1,3 @@
+# Logstash JSON line (synthetic).
+# Ref: https://www.elastic.co/guide/en/logstash/current/logging.html
+{"@timestamp":"2024-06-15T10:57:00.123Z","level":"ERROR","message":"Could not index event to Elasticsearch. {:status=>400, :action=>[\"index\", {:_id=>nil}, {\"msg\"=>\"bad\"}]}"}

@@ -1,0 +1,3 @@
+# Grafana server JSON log (synthetic).
+# Ref: https://grafana.com/docs/grafana/latest/setup-grafana/configure-grafana/#log
+{"@timestamp":"2024-06-15T10:59:00.123Z","level":"info","logger":"http.server","msg":"HTTP Server Listen","address":"[::]:3000"}

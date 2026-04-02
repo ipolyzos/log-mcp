@@ -1,0 +1,3 @@
+# Grafana Cortex / Mimir ingester style key=value log (synthetic).
+# Ref: https://grafana.com/docs/mimir/latest/operators-guide/run-production-environment-with-helm/production-readiness-checklist/
+level=info ts=2024-06-15T11:05:00.123456789Z caller=ingester.go:456 user=team-a msg="push request completed" samples=1200 series=400

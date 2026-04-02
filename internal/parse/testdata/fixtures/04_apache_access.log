@@ -1,0 +1,4 @@
+# Apache httpd combined-style access lines (synthetic).
+# Ref: https://httpd.apache.org/docs/2.4/logs.html
+192.0.2.10 - - [15/Jun/2024:10:33:05 +0000] "GET /index.html HTTP/1.1" 200 2326
+198.51.100.3 - alice [15/Jun/2024:10:33:06 +0000] "GET /missing HTTP/1.1" 404 196
