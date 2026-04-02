@@ -15,7 +15,8 @@ differ, treat **`docs/`** as the source of truth for behavior and configuration.
 | [development.md](development.md) | Branching, local commands, parser fixtures, **which doc to edit** for a given change. |
 | [testing-and-ci.md](testing-and-ci.md) | `go test`, fixtures, **`govulncheck`**, **`go mod tidy`** gate, workflow list. |
 | [releases.md](releases.md) | Branch flow, SemVer tags, **`release.yml`** artifacts, `-ldflags` version stamping. |
-| [troubleshooting.md](troubleshooting.md) | Missing log source, `stream_id`, RFC3339, kubectl/docker/cf, stdout corruption. |
+| [CHANGELOG.md](../CHANGELOG.md) | Keep a Changelog history (**`[Unreleased]`** + tagged releases). |
+| [troubleshooting.md](troubleshooting.md) | Missing log source, `stream_id`, RFC3339, `filter_logs` / JSON args, kubectl/docker/cf, stdout corruption. |
 
 ## Repository guides (repo root)
 

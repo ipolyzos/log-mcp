@@ -16,6 +16,7 @@ Read-only [Model Context Protocol](https://modelcontextprotocol.io/) (MCP) serve
 | [**docs/development.md**](docs/development.md) | Contributor workflow and doc ownership. |
 | [**docs/testing-and-ci.md**](docs/testing-and-ci.md) | Tests, fixtures, `govulncheck`, `go mod tidy` gate, CI workflows. |
 | [**docs/releases.md**](docs/releases.md) | Tags, release builds, versioning. |
+| [**CHANGELOG.md**](CHANGELOG.md) | Version history (Keep a Changelog). |
 | [**docs/troubleshooting.md**](docs/troubleshooting.md) | Common failures and fixes. |
 | [CONTRIBUTING.md](CONTRIBUTING.md) | Branches, build/test commands, PR checklist. |
 | [SECURITY.md](SECURITY.md) | Reporting vulnerabilities. |

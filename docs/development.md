@@ -64,6 +64,7 @@ When you change tools, env vars, security limits, or pipeline semantics, update:
 | How to run / configure hosts | [usage.md](usage.md) |
 | CI, tidy gate, fuzzing N/A | [testing-and-ci.md](testing-and-ci.md) |
 | Release tagging / artifacts | [releases.md](releases.md) |
+| Release notes / version history | [CHANGELOG.md](../CHANGELOG.md) (`[Unreleased]` and tagged sections) |
 | One-line overview | [README.md](../README.md) (keep short; link into `docs/`) |
 
 Also skim [troubleshooting.md](troubleshooting.md) if user-facing failure modes change.

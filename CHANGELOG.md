@@ -9,15 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- **Docs / MCP ergonomics:** Documented **`filter_logs` AND semantics** end-to-end
-  ([tools.md](docs/tools.md), [usage.md](docs/usage.md), [client-contract.md](docs/client-contract.md),
-  [troubleshooting.md](docs/troubleshooting.md)); clarified the MCP tool description and
-  JSON-schema hints. **OR-combine mode** and a **query DSL** remain **out of scope**
-  until there is concrete integrator demand (documented in `tools.md`).
-
-### Planned
-
-- Nothing else listed yet; see [GitHub issues](https://github.com/ipolyzos/log-mcp/issues).
+- Document **`filter_logs`** AND semantics, tool selection vs **`read_logs`** / **`search_logs`**, JSON examples, and explicit non-goals (no OR mode or query DSL until requested) in [docs/tools.md](docs/tools.md), [docs/usage.md](docs/usage.md), [docs/client-contract.md](docs/client-contract.md), and the MCP tool description in code.
+- Sync **release** and **contributor** docs with the tracked [CHANGELOG.md](CHANGELOG.md): [docs/releases.md](docs/releases.md), [docs/README.md](docs/README.md), [README.md](README.md), [docs/development.md](docs/development.md).
 
 ---
 
