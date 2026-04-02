@@ -226,7 +226,7 @@ Ordered steps for one trace (or correlated id); field defaults to logical **`tra
 |-----------|-------|------|----------|-------|
 | Params | `structured_summary` | object | yes | Merge of **`summarize_errors`** and/or **`detect_anomalies`** top-level objects. |
 | Result | `headline` | string | yes | |
-| Result | `bullets` | string[] | yes | |
+| Result | `bullets` | string[] | yes | When **`detect_anomalies`** included **`low_sample`: true**, the first bullet notes that segment z-scores were omitted. |
 | Result | `for_llm_context` | string | yes | |
 | Result | `summary_kind_hint` | string | yes | |
 

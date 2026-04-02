@@ -88,6 +88,9 @@ func BuildIncidentBrief(obj map[string]json.RawMessage) (*IncidentBrief, error) 
 	_ = json.Unmarshal(mustRaw(obj, "repeated_errors"), &da.RepeatedErrors)
 	_ = json.Unmarshal(obj["scanned_lines"], &da.ScannedLines)
 	_ = json.Unmarshal(obj["truncated"], &da.Truncated)
+	if raw, ok := obj["low_sample"]; ok {
+		_ = json.Unmarshal(raw, &da.LowSample)
+	}
 
 	kind := make([]string, 0, 3)
 	if _, ok := obj["groups"]; ok {
@@ -104,6 +107,9 @@ func BuildIncidentBrief(obj map[string]json.RawMessage) (*IncidentBrief, error) 
 	}
 
 	var bullets []string
+	if da.LowSample {
+		bullets = append(bullets, "Anomaly inputs are low_sample: segment z-score spikes were not computed (short stream vs segment_count or fewer than two active segments); treat geographic spike claims cautiously and rely on repeated_errors / summarize_errors when present.")
+	}
 	headline := "Incident summary (from structured tools only)"
 	if se.ErrorLineCount > 0 {
 		headline = fmt.Sprintf("Error digest: %d error-level lines referenced in summary", se.ErrorLineCount)
@@ -137,6 +143,9 @@ func BuildIncidentBrief(obj map[string]json.RawMessage) (*IncidentBrief, error) 
 	ctx.WriteString("Do not treat this text as ground truth beyond what the summary objects state. ")
 	if se.Truncated || da.Truncated {
 		ctx.WriteString("Source summaries were truncated; conclusions are incomplete. ")
+	}
+	if da.LowSample {
+		ctx.WriteString("detect_anomalies reported low_sample; do not infer segment spike geography from omitted z-scores. ")
 	}
 	ctx.WriteString("Prefer correlating trace_id/request_id using correlate_events if IDs appear in patterns.")
 
@@ -181,6 +190,7 @@ type detectAnomaliesShape struct {
 	RepeatedErrors     []burstShape `json:"repeated_errors"`
 	ScannedLines       int64        `json:"scanned_lines"`
 	Truncated          bool         `json:"truncated"`
+	LowSample          bool         `json:"low_sample"`
 }
 
 type spikeShape struct {
