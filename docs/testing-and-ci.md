@@ -22,6 +22,23 @@ for format references (platform logs, polyglot stacks, golden JSON schema).
 
 Shared pointers for other packages live under [`test/fixtures/logs/`](../test/fixtures/logs/README.md).
 
+### MCP stdio-style integration (`internal/server`)
+
+[`integration_stdio_test.go`](../internal/server/integration_stdio_test.go) runs the
+real **`github.com/modelcontextprotocol/go-sdk/mcp` JSON-RPC** session over
+[`mcp.IOTransport`](https://pkg.go.dev/github.com/modelcontextprotocol/go-sdk/mcp#IOTransport)
+(pipes), which uses the **same newline-delimited JSON framing** as
+[`mcp.StdioTransport`](https://pkg.go.dev/github.com/modelcontextprotocol/go-sdk/mcp#StdioTransport).
+The server is constructed with [`server.New`](../internal/server/server.go) and a
+temporary **`LOG_MCP_ROOT`** so env-based wiring matches production. Tests include
+**`filter_logs`** with arguments produced by **`encoding/json.Unmarshal`** from a full
+JSON object (quoted strings and integer **`max_lines`**) to mirror host **`tools/call`**
+payloads.
+
+```bash
+go test -count=1 ./internal/server/ -run Integration_stdio
+```
+
 ## Dependency and security checks
 
 CI runs **`govulncheck ./...`** against the Go version in [`go.mod`](../go.mod).
