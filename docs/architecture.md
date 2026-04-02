@@ -66,7 +66,7 @@ The server uses the official Go SDK (`github.com/modelcontextprotocol/go-sdk/mcp
 | `version_info` | No | [`buildinfo`](../internal/buildinfo/buildinfo.go) name/version. |
 | `read_logs` | Yes | Bounded sequential read + optional filters; redacted lines. |
 | `search_logs` | Yes | Keyword search with optional filters. |
-| `filter_logs` | Yes | **AND**ed `since`/`until`/`level`/`keyword` (at least one required); see [tools.md — `filter_logs`](tools.md#filter_logs). |
+| `filter_logs` | Yes | **AND**ed `since`/`until`/`level`/`keyword`/`keywords_any` (at least one required); see [tools.md — `filter_logs`](tools.md#filter_logs). |
 | `summarize_errors` | Yes | Deterministic ERROR grouping ([`errsummary`](../internal/errsummary/summary.go)). |
 | `group_by_field` | Yes | JSON field grouping (`trace_id` / `request_id` aliases supported). |
 | `correlate_events` | Yes | All lines matching one field value, time-ordered. |
