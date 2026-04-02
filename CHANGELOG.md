@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - **`detect_anomalies`** ([internal/loganalysis/anomaly.go](internal/loganalysis/anomaly.go), [internal/tools/analysis_tools.go](internal/tools/analysis_tools.go)): result includes **`low_sample`** when **`scanned_lines`** is less than **`segment_count`** or fewer than two segments received lines. **Level spike z-scores** are computed only across **segments that actually contain lines**; with fewer than two such segments, **`level_spike_segments`** is empty so tiny streams are not given misleading geographic spikes.
+- **Kubernetes CRI stdout + HTTP 5xx** in [internal/parse/text_parser.go](internal/parse/text_parser.go): after stripping the CRI prefix, infer **ERROR** when the message matches `HTTP/x.y 5xx` (access-log style) so probe/upstream failures on stdout surface in **`summarize_errors`** / **`detect_anomalies`** like stderr-derived errors. Fixture `01_kubernetes_cri.log` includes an example **503** line.
 
 ### Planned
 

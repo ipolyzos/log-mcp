@@ -218,6 +218,35 @@ func TestTextParser_kubernetesCRI_stderrBenignNoErrorLevel(t *testing.T) {
 	}
 }
 
+func TestTextParser_kubernetesCRI_stdoutHTTP5xx(t *testing.T) {
+	t.Parallel()
+	p := TextParser{}
+	line := `2024-06-15T10:30:03Z stdout F GET /bad HTTP/1.1 503`
+	got, err := p.Parse(line)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.Level != "ERROR" {
+		t.Fatalf("level: got %q want ERROR", got.Level)
+	}
+	if got.Fields == nil || got.Fields["cri_stream"] != "stdout" {
+		t.Fatalf("cri_stream: %v", got.Fields)
+	}
+}
+
+func TestTextParser_kubernetesCRI_stdoutHTTP200NoErrorLevel(t *testing.T) {
+	t.Parallel()
+	p := TextParser{}
+	line := `2024-06-15T10:30:01Z stdout F GET /ok HTTP/1.1 200`
+	got, err := p.Parse(line)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.Level != "" {
+		t.Fatalf("level: got %q want empty", got.Level)
+	}
+}
+
 func TestTextParser_kubernetesCRI_stderrExplicitLevelWins(t *testing.T) {
 	t.Parallel()
 	p := TextParser{}

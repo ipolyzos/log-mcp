@@ -22,6 +22,8 @@ var (
 	textBareLevel    = regexp.MustCompile(`(?i)\b(TRACE|DEBUG|INFO|WARN|WARNING|ERROR|FATAL|CRITICAL)\b`)
 	textKV           = regexp.MustCompile(`\b([a-zA-Z_][a-zA-Z0-9_]*)=("([^"]*)"|'([^']*)'|(\S+))`)
 	squashSpaceRE    = regexp.MustCompile(`\s+`)
+	// HTTP response status on access-log-style lines, e.g. "GET /x HTTP/1.1 503".
+	textHTTP5xxStatus = regexp.MustCompile(`(?i)\bHTTP/\d\.\d\s+(5[0-9]{2})\b`)
 )
 
 // stderrErrorNeedles are matched case-insensitively on the post-CRI body when the stream
@@ -97,6 +99,9 @@ func (TextParser) Parse(line string) (ParsedLine, error) {
 	if criStderr && out.Level == "" && stderrImpliesError(work) {
 		out.Level = "ERROR"
 	}
+	if criStream == "stdout" && out.Level == "" && stdoutHTTP5xx(work) {
+		out.Level = "ERROR"
+	}
 
 	fields := collectKV(work)
 	for k, v := range fields {
@@ -131,6 +136,18 @@ func stderrImpliesError(msg string) bool {
 		}
 	}
 	return false
+}
+
+func stdoutHTTP5xx(msg string) bool {
+	m := textHTTP5xxStatus.FindStringSubmatch(msg)
+	if len(m) < 2 {
+		return false
+	}
+	code, err := strconv.Atoi(m[1])
+	if err != nil {
+		return false
+	}
+	return code >= 500 && code <= 599
 }
 
 func normalizeLevel(s string) string {

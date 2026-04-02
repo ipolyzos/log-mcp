@@ -76,6 +76,7 @@ func TestFixtureLogLines_ExpectedSubstrings(t *testing.T) {
 	}{
 		{"01_kubernetes_cri.log", 0, "healthz"},
 		{"01_kubernetes_cri.log", 1, "refused"},
+		{"01_kubernetes_cri.log", 2, "503"},
 		{"02_docker_json_file.log", 0, "8080"},
 		{"02_docker_json_file.log", 1, "ERROR"},
 		{"03_nginx_access.log", 0, "/api/v1/ready"},
