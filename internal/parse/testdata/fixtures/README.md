@@ -12,11 +12,11 @@ systems; formats follow public documentation.
 | `03_nginx_access.log` | [nginx: ngx_http_log_module](https://nginx.org/en/docs/http/ngx_http_log_module.html) `combined` |
 | `04_apache_access.log` | [Apache: Log files](https://httpd.apache.org/docs/2.4/logs.html) `combined` |
 | `05_postgresql.log` | [PostgreSQL logging](https://www.postgresql.org/docs/current/runtime-config-logging.html) |
-| `06_mysql.log` | [MySQL error log](https://dev.mysql.com/doc/refman/8.0/en/error-log.html) |
+| `06_mysql.log` | [MariaDB KB: error log](https://mariadb.com/kb/en/error-log/) (MySQL-compatible mysqld style) |
 | `07_mongodb.log` | [MongoDB log messages](https://www.mongodb.com/docs/manual/reference/log-messages/) |
-| `08_redis.log` | [Redis logging](https://redis.io/docs/latest/operate/rs-7-2-4/logging/) |
+| `08_redis.log` | [Redis documentation](https://redis.io/docs/) (server stdout style) |
 | `09_nomad.log` | [Nomad `log_file` / agent logs](https://developer.hashicorp.com/nomad/docs/configuration#log_file) |
-| `10_cloudfoundry.log` | [Cloud Foundry gorouter](https://docs.cloudfoundry.org/gorouter/) (access-style line) |
+| `10_cloudfoundry.log` | [Cloud Foundry HTTP routing](https://docs.cloudfoundry.org/concepts/http-routing.html) (gorouter-style access line) |
 | `11_aws_lambda.log` | [AWS Lambda logging](https://docs.aws.amazon.com/lambda/latest/dg/nodejs-logging.html) |
 | `12_aws_cloudfront.log` | [CloudFront access logs](https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/AccessLogs.html) |
 | `13_gcp_load_balancer.log` | [GCP HTTPS LB logging](https://cloud.google.com/load-balancing/docs/https/https-logging-monitoring) |
@@ -39,7 +39,7 @@ systems; formats follow public documentation.
 | `30_rabbitmq_json.log` | [RabbitMQ JSON logging](https://www.rabbitmq.com/docs/logging#json) |
 | `31_gcs_audit.log` | [GCS audit logging](https://cloud.google.com/storage/docs/audit-logging) |
 | `32_azure_blob.log` | [Monitor Azure Blob Storage](https://learn.microsoft.com/en-us/azure/storage/blobs/monitor-blob-storage) |
-| `33_cortex_ingester.log` | [Grafana Mimir production checklist](https://grafana.com/docs/mimir/latest/operators-guide/run-production-environment-with-helm/production-readiness-checklist/) (Cortex/Mimir family) |
-| `34_gcp_cloud_functions.log` | [Cloud Functions logging](https://cloud.google.com/functions/docs/configuring/logging) |
+| `33_cortex_ingester.log` | [Grafana Mimir: run in production](https://grafana.com/docs/mimir/latest/manage/run-production-environment/) (Cortex/Mimir family) |
+| `34_gcp_cloud_functions.log` | [Cloud Run logging](https://cloud.google.com/run/docs/logging) (GCP managed runtime JSON style) |
 
 Extend [`fixtures_test.go`](../../fixtures_test.go) when adding files.
