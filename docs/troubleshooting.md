@@ -32,6 +32,21 @@ At least one backend env var must be set (see [architecture.md](architecture.md#
 - For **k8s/docker/cf**, IDs use prefixes like `k8s://…`, `docker://…`, `cf://…`
   as documented in [architecture.md](architecture.md#log-mcp-tools).
 
+## `filter_logs` empty results or host JSON errors
+
+**Symptom:** No lines returned though you expect matches, or the MCP host reports
+**invalid JSON** / **invalid params** when calling `filter_logs`.
+
+**Checks:**
+
+- **AND semantics:** every **set** filter must match the same line. For example
+  `level: ERROR` and `keyword: redis` returns only ERROR lines that contain `redis`.
+  See [tools.md — `filter_logs`](tools.md#filter_logs).
+- **JSON quoting:** arguments are JSON. Use quoted strings:
+  `"level": "ERROR"`, `"keyword": "redis"` — not bare `ERROR` or `redis` tokens.
+- **At least one filter:** you must pass at least one of `since`, `until`, `level`,
+  `keyword` (see [client-contract.md](client-contract.md#typical-error-message-patterns)).
+
 ## `invalid RFC3339 time`
 
 **Symptom:** Tool error when using `since` / `until`.

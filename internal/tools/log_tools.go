@@ -49,10 +49,10 @@ type searchLogsInput struct {
 type filterLogsInput struct {
 	StreamID string  `json:"stream_id" jsonschema:"required log stream id (path) from the configured source"`
 	MaxLines *int64  `json:"max_lines,omitempty" jsonschema:"max matching lines to return; omit for default"`
-	Since    *string `json:"since,omitempty" jsonschema:"optional RFC3339 lower time bound (inclusive)"`
-	Until    *string `json:"until,omitempty" jsonschema:"optional RFC3339 upper time bound (inclusive)"`
-	Level    *string `json:"level,omitempty" jsonschema:"optional log level e.g. INFO WARN ERROR"`
-	Keyword  *string `json:"keyword,omitempty" jsonschema:"optional case-insensitive substring on redacted line"`
+	Since    *string `json:"since,omitempty" jsonschema:"optional RFC3339 lower time bound (inclusive); ANDed with until/level/keyword when set"`
+	Until    *string `json:"until,omitempty" jsonschema:"optional RFC3339 upper time bound (inclusive); ANDed with since/level/keyword when set"`
+	Level    *string `json:"level,omitempty" jsonschema:"optional log level e.g. INFO WARN ERROR; ANDed with time range and keyword when set"`
+	Keyword  *string `json:"keyword,omitempty" jsonschema:"optional case-insensitive substring on redacted line; ANDed with time range and level when set"`
 }
 
 // LogsToolOutput is the structured result for read_logs, search_logs, and filter_logs.
@@ -85,7 +85,7 @@ func RegisterLogTools(src source.LogSource) Installer {
 		}, searchLogsHandler(src))
 		mcp.AddTool(s, &mcp.Tool{
 			Name:        ToolNameFilterLogs,
-			Description: "Return log lines matching at least one filter: time range (since/until), level, and/or keyword. All conditions are ANDed. Lines are redacted.",
+			Description: "Return redacted log lines where every supplied predicate matches (boolean AND). You must set at least one of: since, until, level, keyword. Omit a field to skip that predicate. Example: level=ERROR and keyword=timeout keeps only lines that are both ERROR and contain \"timeout\". For OR across alternatives or a query language, use multiple tool calls or file an issue—no OR/DSL mode yet.",
 		}, filterLogsHandler(src))
 		registerSummarizeErrors(s, src)
 		registerCorrelationTools(s, src)
