@@ -21,9 +21,11 @@ Recommended promotion flow when using both branches:
   `Version` for MCP `Implementation` and the `version_info` tool; release binaries
   should override it with **`-ldflags`** (see below).
 
-Optional: maintain **`CHANGELOG.md`** (Keep a Changelog style). The repository may not
-include one yet; add it when you want a published history independent of GitHub
-Releases.
+The repository maintains **[`CHANGELOG.md`](../CHANGELOG.md)** (Keep a Changelog style)
+alongside GitHub Releases. For **user-visible** behavior or tool changes, update the
+**`[Unreleased]`** section in the same PR when practical; when you tag a release, move
+those notes under the new version heading and link the tag in the changelog footer
+(see existing **`[0.1.0]`** entry).
 
 ## Tagging and artifacts
 
@@ -42,14 +44,19 @@ The workflow sets:
 
 where `VERSION` is the tag name (for example `v0.2.0`).
 
-### Example first release
+### Example: tag a new release
+
+**v0.1.0** is already tagged; use this pattern for the next SemVer (for example **v0.2.0**):
 
 ```bash
 git checkout main   # or develop, per project policy
 git pull --ff-only origin main
-git tag -a v0.1.0 -m "Release v0.1.0"
-git push origin v0.1.0
+git tag -a v0.2.0 -m "Release v0.2.0"
+git push origin v0.2.0
 ```
+
+Update **[`CHANGELOG.md`](../CHANGELOG.md)** with a **`[0.2.0]`** section before or
+immediately after tagging so the file matches the published release notes.
 
 Verify the **Release** workflow on GitHub and downloaded binaries.
 
@@ -63,5 +70,6 @@ For **critical** fixes (especially security), maintainers may:
 
 ## Related docs
 
+- [CHANGELOG.md](../CHANGELOG.md) — human-readable history by version.
 - [usage.md](usage.md) — running released or local binaries.
 - [development.md](development.md) — local build and test.

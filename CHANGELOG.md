@@ -13,6 +13,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.1.1] — 2026-04-02
+
+Documentation and developer-ergonomics release (no change to log tool behavior or MCP JSON shapes).
+
+### Changed
+
+- Document **`filter_logs`** **AND** semantics end-to-end: [docs/tools.md](docs/tools.md), [docs/usage.md](docs/usage.md), [docs/client-contract.md](docs/client-contract.md), [docs/troubleshooting.md](docs/troubleshooting.md), [docs/architecture.md](docs/architecture.md), and the **`filter_logs`** MCP tool description / `jsonschema` hints in [internal/tools/log_tools.go](internal/tools/log_tools.go). Explicitly defer **OR** predicates and a **query DSL** until there is integrator demand.
+- Align **release** and **contributor** docs with the tracked changelog: [docs/releases.md](docs/releases.md), [docs/README.md](docs/README.md), [README.md](README.md), [docs/development.md](docs/development.md).
+- **Markdownlint:** set **`MD024.siblings_only: true`** in [`.markdownlint.yaml`](.markdownlint.yaml) so Keep a Changelog section headings validate.
+
+### Notes
+
+- Default **`internal/buildinfo.Version`** for non-`-ldflags` builds is **0.1.1**; release archives still stamp the tag via [`.github/workflows/release.yml`](.github/workflows/release.yml).
+
+---
+
 ## [0.1.0] — 2026-04-02
 
 First stable release line: Model Context Protocol server for **read-only**, **redacted** log access, parsing, summarization, correlation, and deterministic analysis. Default binary version (`internal/buildinfo`) is `0.1.0`; release artifacts use the `v0.1.0` tag via `-ldflags` (see [docs/releases.md](docs/releases.md)).
@@ -84,5 +100,6 @@ First stable release line: Model Context Protocol server for **read-only**, **re
 
 ---
 
-[Unreleased]: https://github.com/ipolyzos/log-mcp/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/ipolyzos/log-mcp/compare/v0.1.1...HEAD
+[0.1.1]: https://github.com/ipolyzos/log-mcp/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/ipolyzos/log-mcp/releases/tag/v0.1.0

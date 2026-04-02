@@ -72,13 +72,54 @@ Keyword search over redacted lines.
 
 ## `filter_logs`
 
-Return lines matching **all** supplied filters (AND).
+Return lines where **every** filter you pass is satisfied (**boolean AND**).
+
+### Semantics
+
+| Rule | Detail |
+|------|--------|
+| **Minimum** | At least **one** of `since`, `until`, `level`, `keyword` must be set (non-empty after trim). Otherwise the tool errors. |
+| **AND** | If you set multiple predicates, a line is returned only if it matches **all** of them. Omitted parameters are not applied. |
+| **Time** | `since` / `until` are **inclusive** RFC3339 bounds on the parsed timestamp when present; both may be set → line must fall in `[since, until]`. |
+| **Level** | Exact match on the normalized level string the pipeline extracted (e.g. `ERROR`), when that field is set. |
+| **Keyword** | Case-insensitive substring on the **redacted** full line text (`text`). |
+
+### Contrast with `search_logs`
+
+- **`search_logs`** requires **`keyword`** and optionally ANDs `since` / `until` / `level`.
+- **`filter_logs`** does **not** require `keyword`; use it when you want **level-only** or **time-only** slices, or **level + keyword** without treating keyword as the primary search axis.
+
+### Examples (arguments only)
+
+```json
+{
+  "stream_id": "/var/log/app.log",
+  "level": "ERROR",
+  "max_lines": 100
+}
+```
+
+```json
+{
+  "stream_id": "/var/log/app.log",
+  "since": "2026-04-02T00:00:00Z",
+  "until": "2026-04-02T23:59:59Z",
+  "keyword": "timeout",
+  "max_lines": 50
+}
+```
+
+Second example: lines must be **inside the window** **and** contain `timeout` (and respect `max_lines`).
+
+### OR filters and query DSL
+
+There is **no** OR-combine mode and **no** query mini-language in v0.1.x. To approximate OR, run **`filter_logs`** (or **`search_logs`**) **more than once** with different parameters and merge results client-side, or open a [discussion/issue](https://github.com/ipolyzos/log-mcp/issues) if a first-class OR mode or tiny DSL would unblock you—we will only add it when real integrations need it.
 
 | Direction | Field | Type | Required | Notes |
 |-----------|-------|------|----------|-------|
 | Params | `stream_id` | string | yes | |
 | Params | `max_lines` | int64 | no | Default **500**. |
-| Params | `since`, `until`, `level`, `keyword` | string | no | At least **one** must be non-empty. |
+| Params | `since`, `until`, `level`, `keyword` | string | no | At least **one** must be non-empty; **all set fields** are **AND**ed. |
 | Result | | | | Same shape as `read_logs` result. |
 
 ---

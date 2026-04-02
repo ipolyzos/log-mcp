@@ -77,10 +77,12 @@ filters and set `max_lines` for a bounded tail-oriented read.
 
 ### Search and filter
 
-- **`search_logs`** — required `keyword`; optional time and level filters.
-- **`filter_logs`** — at least one of `since`, `until`, `level`, `keyword`.
+- **`search_logs`** — required `keyword`; optional `since`, `until`, `level` are **AND**ed with the keyword match (same line must satisfy all set predicates).
+- **`filter_logs`** — supply **at least one** of `since`, `until`, `level`, `keyword`. **Every parameter you set is ANDed**: a line appears only if it matches the time window (if both ends set), level (if set), and keyword substring (if set). Omitted parameters are ignored. Use `filter_logs` for time-only or level-only slices; use `search_logs` when search text is the primary selector.
 
-Times must be **RFC3339** (for example `2026-04-02T12:00:00Z`).
+Times must be **RFC3339** (for example `2026-04-02T12:00:00Z`). String tool arguments must be valid JSON strings (e.g. `"level": "ERROR"`, `"keyword": "redis"`) when hosts serialize `tools/call` parameters.
+
+**OR / DSL:** there is no built-in OR mode or query language; combine multiple tool calls client-side if needed. See [tools.md — `filter_logs`](tools.md#filter_logs).
 
 ### Incident workflow (deterministic)
 
