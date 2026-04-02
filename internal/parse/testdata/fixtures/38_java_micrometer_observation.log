@@ -1,0 +1,3 @@
+# Micrometer / observation-style structured log line (often emitted through SLF4J; synthetic).
+# Ref: https://micrometer.io/docs/observation
+{"timestamp":"2024-08-20T12:10:03.000Z","level":"INFO","message":"http.server.requests recorded","metric":"http.server.requests","method":"POST","uri":"/checkout","status":"201"}

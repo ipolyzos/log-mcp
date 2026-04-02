@@ -123,6 +123,13 @@ func TestFixtureLogLines_ExpectedSubstrings(t *testing.T) {
 		{"32_azure_blob.log", 0, "blob.core"},
 		{"33_cortex_ingester.log", 0, "ingester"},
 		{"34_gcp_cloud_functions.log", 0, "helloWorld"},
+		{"35_java_log4j2_json.log", 0, "submitting"},
+		{"36_java_logback_logstash_encoder.log", 0, "retrying"},
+		{"37_java_slf4j_jackson_app.log", 0, "/api/v1/cart"},
+		{"38_java_micrometer_observation.log", 0, "http.server.requests"},
+		{"39_java_opentelemetry_sdk.log", 0, "payment"},
+		{"40_python_json_logger.log", 0, "heartbeat"},
+		{"41_python_structlog.log", 0, "merged"},
 	}
 	for _, tc := range cases {
 		t.Run(tc.file+"_"+strconv.Itoa(tc.lineIdx), func(t *testing.T) {

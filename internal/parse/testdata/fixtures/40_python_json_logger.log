@@ -1,0 +1,3 @@
+# python-json-logger style line with explicit level for generic JSON parsers (synthetic).
+# Ref: https://pypi.org/project/python-json-logger/
+{"message":"worker heartbeat tick=9001","asctime":"2024-08-20 12:10:05,000","name":"celery.worker","levelname":"INFO","level":"INFO","filename":"tasks.py"}

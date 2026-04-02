@@ -1,0 +1,3 @@
+# logstash-logback-encoder JSON (classic field names; synthetic).
+# Ref: https://github.com/logfellow/logstash-logback-encoder
+{"@timestamp":"2024-08-20T12:10:01.456+00:00","level":"WARN","logger_name":"com.example.payments.UpstreamClient","message":"retrying upstream call attempt=2","thread_name":"http-client-3"}
