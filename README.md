@@ -6,12 +6,31 @@ Read-only [Model Context Protocol](https://modelcontextprotocol.io/) (MCP) serve
 
 Early development. The public API and tool surface are not stable.
 
+## Architecture
+
+log-mcp is a **stdio MCP server**: the host launches the binary and speaks [Model Context Protocol](https://modelcontextprotocol.io/) over newline-delimited **JSON-RPC 2.0** on stdin/stdout. Logging and diagnostics must go to **stderr** only so stdout stays a clean protocol channel.
+
+| Layer | Package / path | Responsibility |
+|-------|----------------|----------------|
+| Entry | `cmd/log-mcp` | Process lifetime, signal handling, `server.Run`. |
+| Transport & session | `github.com/modelcontextprotocol/go-sdk/mcp` | `StdioTransport`, JSON-RPC framing, MCP session lifecycle. |
+| Composition | `internal/server` | Builds `mcp.Server`, applies the default **tool registry**, exposes `Run` for stdio. |
+| Wire model | `internal/server` (`Request` / `Response`) | Typed JSON-RPC envelopes for tests and future custom transports. |
+| Tools | `internal/tools` | **Registry** (`Register` + `Apply`) and concrete tools (`health_check`, `version_info`). |
+| Metadata | `internal/buildinfo` | Server `Name` / `Version` surfaced by `version_info` and MCP `Implementation`. |
+
+**Tool registry:** installers are registered on a `tools.Registry` and applied in order to `mcp.Server` via `mcp.AddTool`, keeping tool wiring in one place as the surface grows.
+
+**Request/response:** MCP maps cleanly to JSON-RPC: clients send `tools/call` with `params`; handlers use the SDK’s typed `ToolHandlerFor[In, Out]` so inputs/outputs are validated and serialized per the spec.
+
 ## Layout
 
 | Path | Purpose |
 |------|---------|
 | `cmd/log-mcp` | MCP server entrypoint (stdio binary) |
-| `internal/` | Private application code |
+| `internal/server` | MCP server wiring, JSON-RPC wire types, stdio `Run` |
+| `internal/tools` | Tool registry and tool implementations |
+| `internal/` | Other private application code |
 | `pkg/` | Library code intended for import by other modules |
 | `docs/` | Project documentation |
 | `test/` | Shared test fixtures and integration helpers |
