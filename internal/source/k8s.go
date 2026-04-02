@@ -1,10 +1,8 @@
 package source
 
 import (
-	"bufio"
 	"context"
 	"fmt"
-	"io"
 	"regexp"
 	"sort"
 	"strconv"
@@ -140,45 +138,8 @@ func (k *K8sLogSource) Read(ctx context.Context, q Query) (<-chan LogEntry, erro
 	}
 
 	ch := make(chan LogEntry, 64)
-	go k.streamLogs(ctx, rc, q, ch)
+	go streamReaderLines(ctx, rc, q, ch)
 	return ch, nil
-}
-
-func (k *K8sLogSource) streamLogs(ctx context.Context, rc io.ReadCloser, q Query, ch chan<- LogEntry) {
-	defer close(ch)
-	defer func() { _ = rc.Close() }()
-
-	br := bufio.NewReaderSize(rc, 1<<20)
-	var lineNum, bytesRead int64
-	for {
-		if err := ctx.Err(); err != nil {
-			return
-		}
-		line, err := br.ReadString('\n')
-		if line != "" {
-			lineNum++
-			raw := strings.TrimSuffix(strings.TrimSuffix(line, "\r\n"), "\n")
-			if q.MaxLines > 0 && lineNum > q.MaxLines {
-				return
-			}
-			n := int64(len(raw))
-			if q.MaxBytes > 0 && bytesRead+n > q.MaxBytes {
-				return
-			}
-			bytesRead += n
-			select {
-			case <-ctx.Done():
-				return
-			case ch <- LogEntry{LineNumber: lineNum, Raw: raw}:
-			}
-		}
-		if err != nil {
-			if err == io.EOF {
-				return
-			}
-			return
-		}
-	}
 }
 
 func parseK8sStreamID(id string) (namespace, pod, container string, err error) {

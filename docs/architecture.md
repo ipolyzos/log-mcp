@@ -32,7 +32,10 @@ The server uses the official Go SDK (`github.com/modelcontextprotocol/go-sdk/mcp
 [`New`](../internal/server/server.go) builds log sources from the environment and registers tools when at least one source is configured:
 
 - **`LOG_MCP_ROOT`** — filesystem roots (same separator as the OS `PATH`); see [File-backed source](#file-backed-source).
-- **`LOG_MCP_K8S_NAMESPACES`** — comma-separated **allowlist** of Kubernetes namespace names (DNS labels only). Enables [`K8sLogSource`](../internal/source/k8s.go): only **`kubectl get pods -n <ns>`** and **`kubectl logs <pod> -n <ns>`** are run, with fixed argument shapes (no shell). Optional **`LOG_MCP_K8S_KUBECTL`** overrides the kubectl binary. Stream IDs are **`k8s://namespace/pod`** or **`k8s://namespace/pod/container`**. With both env vars set, [`MultiLogSource`](../internal/source/multi.go) merges file and pod streams.
+- **`LOG_MCP_K8S_NAMESPACES`** — comma-separated **allowlist** of Kubernetes namespace names (DNS labels only). Enables [`K8sLogSource`](../internal/source/k8s.go): only **`kubectl get pods -n <ns>`** and **`kubectl logs <pod> -n <ns>`** are run, with fixed argument shapes (no shell). Optional **`LOG_MCP_K8S_KUBECTL`** overrides the kubectl binary. Stream IDs are **`k8s://namespace/pod`** or **`k8s://namespace/pod/container`**.
+- **`LOG_MCP_DOCKER_CONTAINERS`** — comma-separated **allowlist** of Docker container names. Enables [`DockerLogSource`](../internal/source/docker.go): **`docker ps -a --format '{{.Names}}'`** to list (intersected with the allowlist) and **`docker logs <name>`** with optional **`--tail`** from `max_lines`. Optional **`LOG_MCP_DOCKER_DOCKER`** overrides the docker binary. Stream IDs are **`docker://container_name`**.
+- **`LOG_MCP_CF_APPS`** — comma-separated **allowlist** of Cloud Foundry app names (lowercase DNS-like). Enables [`CFLogSource`](../internal/source/cf.go): **`cf apps`** to list (intersected with the allowlist) and **`cf logs <app> --recent`**. Optional **`LOG_MCP_CF_CLI`** overrides the **`cf`** binary. Stream IDs are **`cf://app_name`**.
+- When more than one of the above is set, [`MultiLogSource`](../internal/source/multi.go) merges the corresponding streams and routes reads by stream ID prefix.
 
 Tools apply to any configured backend the same way. When nothing is configured, log tools return an error.
 
@@ -58,6 +61,14 @@ This interface is intentionally **line-oriented**: parsers consume each `LogEntr
 ### Kubernetes backend
 
 Pod log streams are enumerated per allowlisted namespace and read through kubectl. Namespace and pod (and optional container) names are validated as DNS labels before any subprocess call. Pod names returned by `kubectl get pods` are filtered the same way so unexpected output lines are ignored. Cluster access and credentials follow the normal **`kubectl`** / **`KUBECONFIG`** environment of the MCP server process.
+
+### Docker backend
+
+Container log streams are enumerated with **`docker ps -a`** (name format) and intersected with the allowlist. Only **`docker logs`** is used for reads (no `--follow`). Container names are validated with a conservative pattern before subprocess calls.
+
+### Cloud Foundry backend
+
+App streams are enumerated by parsing the tabular output of **`cf apps`**; only allowlisted app names that appear in that table are exposed. Reads use **`cf logs <app> --recent`** (bounded snapshot; line limits still apply when streaming the captured output). App names are validated before subprocess calls. The MCP server uses the same **`cf`** authentication and target org/space as the process environment.
 
 ## Log parsing
 

@@ -6,23 +6,26 @@ import (
 	"strings"
 )
 
-// MultiLogSource merges a filesystem source and/or a Kubernetes source.
-// Stream IDs with prefix "k8s://" are routed to the k8s source; all others to the file source.
+// MultiLogSource merges filesystem, Kubernetes, Docker, and/or Cloud Foundry sources.
+// Stream IDs with prefix k8s://, docker://, or cf:// are routed to the matching backend;
+// all others go to the file source when configured.
 type MultiLogSource struct {
-	name string
-	file *FileLogSource
-	k8s  *K8sLogSource
+	name   string
+	file   *FileLogSource
+	k8s    *K8sLogSource
+	docker *DockerLogSource
+	cf     *CFLogSource
 }
 
-// NewMultiLogSource returns a combined source. At least one of file or k8s must be non-nil.
-func NewMultiLogSource(name string, file *FileLogSource, k8s *K8sLogSource) (*MultiLogSource, error) {
+// NewMultiLogSource returns a combined source. At least one backend must be non-nil.
+func NewMultiLogSource(name string, file *FileLogSource, k8s *K8sLogSource, docker *DockerLogSource, cf *CFLogSource) (*MultiLogSource, error) {
 	if name == "" {
 		return nil, fmt.Errorf("source: multi source name is empty")
 	}
-	if file == nil && k8s == nil {
-		return nil, fmt.Errorf("source: multi source needs file and/or k8s")
+	if file == nil && k8s == nil && docker == nil && cf == nil {
+		return nil, fmt.Errorf("source: multi source needs at least one backend")
 	}
-	return &MultiLogSource{name: name, file: file, k8s: k8s}, nil
+	return &MultiLogSource{name: name, file: file, k8s: k8s, docker: docker, cf: cf}, nil
 }
 
 // Name implements [LogSource].
@@ -47,6 +50,20 @@ func (m *MultiLogSource) List(ctx context.Context) ([]LogStream, error) {
 		}
 		out = append(out, b...)
 	}
+	if m.docker != nil {
+		d, err := m.docker.List(ctx)
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, d...)
+	}
+	if m.cf != nil {
+		c, err := m.cf.List(ctx)
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, c...)
+	}
 	return out, nil
 }
 
@@ -57,6 +74,18 @@ func (m *MultiLogSource) Read(ctx context.Context, q Query) (<-chan LogEntry, er
 			return nil, fmt.Errorf("source: kubernetes log source is not configured")
 		}
 		return m.k8s.Read(ctx, q)
+	}
+	if strings.HasPrefix(q.StreamID, dockerStreamPrefix) {
+		if m.docker == nil {
+			return nil, fmt.Errorf("source: docker log source is not configured")
+		}
+		return m.docker.Read(ctx, q)
+	}
+	if strings.HasPrefix(q.StreamID, cfStreamPrefix) {
+		if m.cf == nil {
+			return nil, fmt.Errorf("source: cloud foundry log source is not configured")
+		}
+		return m.cf.Read(ctx, q)
 	}
 	if m.file == nil {
 		return nil, fmt.Errorf("source: file log source is not configured")
