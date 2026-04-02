@@ -7,4 +7,4 @@ const (
 )
 
 // Version is the server semantic version (override with -ldflags for releases).
-var Version = "0.1.1"
+var Version = "0.1.2"

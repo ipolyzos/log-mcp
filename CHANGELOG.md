@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Planned
+
+- Nothing else listed yet; see [GitHub issues](https://github.com/ipolyzos/log-mcp/issues).
+
+---
+
+## [0.1.2] — 2026-04-02
+
+Operator-focused parsing and anomaly UX: Kubernetes **CRI** severity heuristics, **`detect_anomalies`** **`low_sample`**, and **`incident_summary`** awareness; MCP stdio integration tests.
+
 ### Added
 
 - **MCP stdio-style integration tests** in [internal/server/integration_stdio_test.go](internal/server/integration_stdio_test.go): JSON-RPC over piped **[`mcp.IOTransport`](https://pkg.go.dev/github.com/modelcontextprotocol/go-sdk/mcp#IOTransport)** (same framing as stdio), temp **`LOG_MCP_ROOT`**, **`filter_logs`** with full JSON arguments (`json.Unmarshal`), plus **`read_logs`**, **`health_check`**, and **`version_info`**.
@@ -19,9 +29,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`incident_summary`** ([internal/llmtools/summary.go](internal/llmtools/summary.go)): when merged **`detect_anomalies`** JSON includes **`low_sample`: true**, the brief adds a leading bullet and **for_llm_context** guidance so operators do not treat omitted segment spikes as geographic evidence.
 - **Tests:** [internal/loganalysis/anomaly_test.go](internal/loganalysis/anomaly_test.go) covers **`detect_anomalies`** on Kubernetes **CRI-shaped** lines (stderr failure + stdout **5xx**) with **`low_sample`** and empty **`level_spike_segments`**.
 
-### Planned
+### Notes
 
-- Nothing else listed yet; see [GitHub issues](https://github.com/ipolyzos/log-mcp/issues).
+- Default **`internal/buildinfo.Version`** for non-`-ldflags` builds is **0.1.2**; release archives still stamp the tag via [`.github/workflows/release.yml`](.github/workflows/release.yml).
 
 ---
 
@@ -112,6 +122,7 @@ First stable release line: Model Context Protocol server for **read-only**, **re
 
 ---
 
-[Unreleased]: https://github.com/ipolyzos/log-mcp/compare/v0.1.1...HEAD
+[Unreleased]: https://github.com/ipolyzos/log-mcp/compare/v0.1.2...HEAD
+[0.1.2]: https://github.com/ipolyzos/log-mcp/compare/v0.1.1...v0.1.2
 [0.1.1]: https://github.com/ipolyzos/log-mcp/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/ipolyzos/log-mcp/releases/tag/v0.1.0
