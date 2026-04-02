@@ -44,7 +44,7 @@ systems; formats follow public documentation.
 | `35_java_log4j2_json.log` | [Log4j 2 JSON layout](https://logging.apache.org/log4j/2.x/manual/layouts.html#JSONLayout) |
 | `36_java_logback_logstash_encoder.log` | [logstash-logback-encoder](https://github.com/logfellow/logstash-logback-encoder) |
 | `37_java_slf4j_jackson_app.log` | [SLF4J user manual](https://www.slf4j.org/manual.html) (app JSON via logging facade) |
-| `38_java_micrometer_observation.log` | [Micrometer observations](https://micrometer.io/docs/observation) |
+| `38_java_micrometer_observation.log` | [Spring Boot observability (Micrometer)](https://docs.spring.io/spring-boot/reference/actuator/observability.html) |
 | `39_java_opentelemetry_sdk.log` | [OpenTelemetry Java](https://opentelemetry.io/docs/languages/java/) |
 | `40_python_json_logger.log` | [python-json-logger](https://pypi.org/project/python-json-logger/) |
 | `41_python_structlog.log` | [structlog](https://www.structlog.org/en/stable/) |
