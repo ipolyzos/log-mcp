@@ -1,6 +1,6 @@
 module github.com/ipolyzos/log-mcp
 
-go 1.25.8
+go 1.26.1
 
 require github.com/modelcontextprotocol/go-sdk v1.4.1
 
