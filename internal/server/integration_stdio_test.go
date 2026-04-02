@@ -243,3 +243,107 @@ func TestIntegration_stdio_readLogs_emptyStreamResultHint(t *testing.T) {
 	cancel()
 	<-errCh
 }
+
+// repoRootFromServerTest returns the repository root when tests run with cwd
+// set to internal/server (normal `go test ./internal/server/...`).
+func repoRootFromServerTest(t *testing.T) string {
+	t.Helper()
+	wd, err := os.Getwd()
+	if err != nil {
+		t.Fatal(err)
+	}
+	return filepath.Clean(filepath.Join(wd, "..", ".."))
+}
+
+// TestIntegration_stdioToolsCall_filterLogsKubernetesCRI_fixture runs the same
+// filter_logs JSON shapes recommended for MCP clients (time window, then AND
+// predicates) against the checked-in Kubernetes CRI fixture.
+func TestIntegration_stdioToolsCall_filterLogsKubernetesCRI_fixture(t *testing.T) {
+	root := repoRootFromServerTest(t)
+	logPath := filepath.Join(root, "internal", "parse", "testdata", "fixtures", "01_kubernetes_cri.log")
+	if _, err := os.Stat(logPath); err != nil {
+		t.Fatalf("fixture: %v", err)
+	}
+
+	t.Setenv("LOG_MCP_ROOT", root)
+	t.Setenv("LOG_MCP_K8S_NAMESPACES", "")
+	t.Setenv("LOG_MCP_DOCKER_CONTAINERS", "")
+	t.Setenv("LOG_MCP_CF_APPS", "")
+
+	ctx, cancel := context.WithCancel(context.Background())
+	t.Cleanup(cancel)
+
+	srvT, cliT := stdioPairedTransports()
+	srv := New()
+	errCh := make(chan error, 1)
+	runMCPServerStdioLike(ctx, srv, srvT, errCh)
+
+	client := mcp.NewClient(&mcp.Implementation{Name: "stdio-itest", Version: "0"}, nil)
+	session, err := client.Connect(ctx, cliT, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = session.Close() })
+
+	t.Run("time_window", func(t *testing.T) {
+		filterJSON := fmt.Sprintf(
+			`{"stream_id":%q,"since":"2024-06-15T10:30:00Z","until":"2024-06-15T10:30:10Z","max_lines":20}`,
+			logPath,
+		)
+		var args map[string]any
+		if err := json.Unmarshal([]byte(filterJSON), &args); err != nil {
+			t.Fatal(err)
+		}
+		res, err := session.CallTool(ctx, &mcp.CallToolParams{
+			Name:      tools.ToolNameFilterLogs,
+			Arguments: args,
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if res.IsError {
+			t.Fatalf("filter_logs: %+v", res)
+		}
+		var out tools.LogsToolOutput
+		if err := decodeStructured(res, &out); err != nil {
+			t.Fatal(err)
+		}
+		if len(out.Lines) < 1 {
+			t.Fatalf("want at least 1 line in window, got %d: %+v", len(out.Lines), out.Lines)
+		}
+	})
+
+	t.Run("level_keyword_and_time", func(t *testing.T) {
+		filterJSON := fmt.Sprintf(
+			`{"stream_id":%q,"since":"2024-06-01T00:00:00Z","until":"2025-01-01T00:00:00Z","level":"ERROR","keyword":"upstream","max_lines":50}`,
+			logPath,
+		)
+		var args map[string]any
+		if err := json.Unmarshal([]byte(filterJSON), &args); err != nil {
+			t.Fatal(err)
+		}
+		res, err := session.CallTool(ctx, &mcp.CallToolParams{
+			Name:      tools.ToolNameFilterLogs,
+			Arguments: args,
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if res.IsError {
+			t.Fatalf("filter_logs: %+v", res)
+		}
+		var out tools.LogsToolOutput
+		if err := decodeStructured(res, &out); err != nil {
+			t.Fatal(err)
+		}
+		if len(out.Lines) != 1 {
+			t.Fatalf("want 1 ERROR+upstream line (503), got %d: %+v", len(out.Lines), out.Lines)
+		}
+		if out.Lines[0].Level != "ERROR" {
+			t.Fatalf("want ERROR level, got %q line=%+v", out.Lines[0].Level, out.Lines[0])
+		}
+	})
+
+	cancel()
+	<-errCh
+}
