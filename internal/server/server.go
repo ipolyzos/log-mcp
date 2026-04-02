@@ -15,8 +15,8 @@ import (
 
 // Config configures optional server dependencies.
 type Config struct {
-	// LogSource backs read_logs / search_logs / filter_logs. If nil, those
-	// tools still register but return an error until configured.
+	// LogSource backs read_logs / search_logs / filter_logs / summarize_errors.
+	// If nil, those tools still register but return an error until configured.
 	LogSource source.LogSource
 }
 
