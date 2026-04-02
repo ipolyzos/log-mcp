@@ -40,6 +40,7 @@ func TestServer_DefaultToolsList(t *testing.T) {
 		tools.ToolNameHealthCheck,
 		tools.ToolNameReadLogs,
 		tools.ToolNameSearchLogs,
+		tools.ToolNameSummarizeErrors,
 		tools.ToolNameVersionInfo,
 	}
 	slices.Sort(want)

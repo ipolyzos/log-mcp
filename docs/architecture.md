@@ -19,6 +19,7 @@ This document describes how **log-mcp** is structured today and how log data flo
 | Normalization | `internal/normalize` | Deterministic masking (UUID, IP, tokens) and normalization (timestamps, dynamic IDs). |
 | Processing pipeline | `internal/pipeline` | Bounded-channel stream: source → parse → normalize → analyze (no full-buffering of the log). |
 | Log query helpers | `internal/logtool` | Shared filter + collect over the pipeline (time, level, keyword). |
+| Error summarization | `internal/errsummary` | Deterministic ERROR-level grouping, frequency ranking, per-service counts (no LLM). |
 | Build metadata | `internal/buildinfo` | Static name/version for MCP `Implementation` and `version_info`. |
 
 ## MCP layer (stdio)
@@ -32,6 +33,7 @@ When **`LOG_MCP_ROOT`** is set to one or more filesystem roots (same separator a
 - **`read_logs`** — sequential read with optional `max_lines` and optional filters (`since` / `until` RFC3339, `level`, `keyword`). With no filters, `max_lines` is passed to the source so the tail of the file is not fully scanned.
 - **`search_logs`** — requires `keyword`; optional time and level filters; caps matches with `max_matches`.
 - **`filter_logs`** — requires at least one of `since`, `until`, `level`, or `keyword`; optional `max_lines`.
+- **`summarize_errors`** — scans up to `max_scan_lines` (default 20000), keeps ERROR/FATAL/CRITICAL-style levels, groups lines by a stable fingerprint ([`errsummary`](../internal/errsummary/summary.go): redaction + normalized message and error-related JSON fields), sorts groups by **count descending** then fingerprint ascending, and reports **by_service** using `service` / `app` / `logger` / … fields or the log file basename.
 
 Outputs are **redacted** via [`internal/pipeline`](../internal/pipeline/pipeline.go) and [`normalize.Apply`](../internal/normalize/normalize.go). For tests or custom deployments, [`NewWithConfig`](../internal/server/server.go) accepts an explicit [`LogSource`](../internal/source/source.go).
 

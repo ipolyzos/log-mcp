@@ -38,7 +38,12 @@ func TestServer_LogTools_listedWithDefaults(t *testing.T) {
 		names = append(names, tool.Name)
 	}
 	slices.Sort(names)
-	for _, want := range []string{tools.ToolNameReadLogs, tools.ToolNameSearchLogs, tools.ToolNameFilterLogs} {
+	for _, want := range []string{
+		tools.ToolNameReadLogs,
+		tools.ToolNameSearchLogs,
+		tools.ToolNameFilterLogs,
+		tools.ToolNameSummarizeErrors,
+	} {
 		if !slices.Contains(names, want) {
 			t.Fatalf("missing tool %q in %v", want, names)
 		}
@@ -183,6 +188,27 @@ func TestServer_LogTools_readSearchFilter(t *testing.T) {
 	}
 	if len(ft.Lines) != 1 || ft.Lines[0].Level != "WARN" {
 		t.Fatalf("filter time: %+v", ft.Lines)
+	}
+
+	sumRes, err := session.CallTool(ctx, &mcp.CallToolParams{
+		Name:      tools.ToolNameSummarizeErrors,
+		Arguments: map[string]any{"stream_id": path},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if sumRes.IsError {
+		t.Fatalf("summarize_errors: %+v", sumRes)
+	}
+	var so tools.SummarizeErrorsOutput
+	if err := decodeStructured(sumRes, &so); err != nil {
+		t.Fatal(err)
+	}
+	if so.ErrorLineCount != 1 {
+		t.Fatalf("summarize error_line_count: got %d want 1 (only one ERROR line)", so.ErrorLineCount)
+	}
+	if len(so.Groups) != 1 || so.Groups[0].Count != 1 {
+		t.Fatalf("summarize groups: %+v", so.Groups)
 	}
 }
 
