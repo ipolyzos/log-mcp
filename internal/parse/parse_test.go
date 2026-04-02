@@ -234,6 +234,45 @@ func TestTextParser_kubernetesCRI_stdoutHTTP5xx(t *testing.T) {
 	}
 }
 
+func TestTextParser_kubernetesCRI_stdoutGETPath502NoHTTPVersion(t *testing.T) {
+	t.Parallel()
+	p := TextParser{}
+	line := `2024-06-15T10:30:03Z stdout F GET /bad 502`
+	got, err := p.Parse(line)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.Level != "ERROR" {
+		t.Fatalf("level: got %q want ERROR", got.Level)
+	}
+}
+
+func TestTextParser_kubernetesCRI_stdoutStatusKV500(t *testing.T) {
+	t.Parallel()
+	p := TextParser{}
+	line := `2024-06-15T10:30:03Z stdout F request done status=500 duration_ms=12`
+	got, err := p.Parse(line)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.Level != "ERROR" {
+		t.Fatalf("level: got %q want ERROR", got.Level)
+	}
+}
+
+func TestTextParser_kubernetesCRI_stdoutGET404NoErrorLevel(t *testing.T) {
+	t.Parallel()
+	p := TextParser{}
+	line := `2024-06-15T10:30:03Z stdout F GET /missing 404`
+	got, err := p.Parse(line)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.Level != "" {
+		t.Fatalf("level: got %q want empty", got.Level)
+	}
+}
+
 func TestTextParser_kubernetesCRI_stdoutHTTP200NoErrorLevel(t *testing.T) {
 	t.Parallel()
 	p := TextParser{}
