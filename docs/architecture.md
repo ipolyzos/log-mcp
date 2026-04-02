@@ -16,6 +16,7 @@ This document describes how **log-mcp** is structured today and how log data flo
 | Tool registry | `internal/tools` | Ordered registration of MCP tools onto `mcp.Server`. |
 | Log sources | `internal/source` | Pluggable backends that list streams and read them as lines. |
 | Log parsing | `internal/parse` | JSON and text line parsers; shared `ParsedLine` (timestamp, level, message, fields). |
+| Normalization | `internal/normalize` | Deterministic masking (UUID, IP, tokens) and normalization (timestamps, dynamic IDs). |
 | Build metadata | `internal/buildinfo` | Static name/version for MCP `Implementation` and `version_info`. |
 
 ## MCP layer (stdio)
@@ -46,6 +47,14 @@ Package [`internal/parse`](../internal/parse/parsed.go) turns a single line into
 **`TextParser`** uses lightweight regex heuristics: optional RFC3339 prefix, `[LEVEL]` or bare level token, then `key=value` pairs stripped from the message body.
 
 **`AutoParser`** tries JSON when the trimmed line starts with `{`; invalid JSON falls back to `TextParser` so mixed log files still yield a useful `ParsedLine`.
+
+## Log normalization
+
+Package [`internal/normalize`](../internal/normalize/normalize.go) implements [`Apply`](../internal/normalize/normalize.go) with a [`Config`](../internal/normalize/config.go) (see [`DefaultConfig`](../internal/normalize/config.go)): a **fixed-order**, **deterministic** pipeline so the same input string always yields the same redacted output (stable for tests and clustering).
+
+**Masking (placeholders):** UUIDs (`<uuid>`), IPv6 then IPv4 (`<ipv6>`, `<ipv4>`), and tokens including JWT-shaped segments, `Bearer …`, `Authorization: Bearer …`, common `api_key` / `token` / `password` assignments, `sk-*`, and `ghp_*` / `ghs_*` style prefixes (`<token>`).
+
+**Normalization:** RFC3339-like timestamps and 10-digit unix seconds (UTC, years 2000–2100) are rewritten to a canonical UTC string; long decimal runs (15–22 digits) become `<num_id>` and 16–40 character hex runs `<hex_id>` (after UUID masking so dashed UUIDs are not double-handled).
 
 ### File-backed source
 
