@@ -2,7 +2,6 @@ package server
 
 import (
 	"context"
-	"log"
 	"os"
 	"path/filepath"
 	"strings"
@@ -78,7 +77,7 @@ func logSourceFromEnv() source.LogSource {
 	}
 	multi, err := source.NewMultiLogSource("combined", fileSrc, k8sSrc, dockerSrc, cfSrc)
 	if err != nil {
-		log.Printf("log-mcp: combined log source: %v", err)
+		logger().Warn("log-mcp: combined log source", "error", err)
 		return firstNonNilLogSource(fileSrc, k8sSrc, dockerSrc, cfSrc)
 	}
 	return multi
@@ -115,7 +114,7 @@ func fileSourceFromEnv() *source.FileLogSource {
 	}
 	fs, err := source.NewFileLogSource("filesystem", cleaned...)
 	if err != nil {
-		log.Printf("log-mcp: ignoring LOG_MCP_ROOT: %v", err)
+		logger().Warn("log-mcp: ignoring LOG_MCP_ROOT", "error", err)
 		return nil
 	}
 	return fs
@@ -141,7 +140,7 @@ func k8sSourceFromEnv() *source.K8sLogSource {
 	}
 	k, err := source.NewK8sLogSource("kubernetes", ns, runner)
 	if err != nil {
-		log.Printf("log-mcp: ignoring LOG_MCP_K8S_NAMESPACES: %v", err)
+		logger().Warn("log-mcp: ignoring LOG_MCP_K8S_NAMESPACES", "error", err)
 		return nil
 	}
 	return k
@@ -167,7 +166,7 @@ func dockerSourceFromEnv() *source.DockerLogSource {
 	}
 	d, err := source.NewDockerLogSource("docker", names, runner)
 	if err != nil {
-		log.Printf("log-mcp: ignoring LOG_MCP_DOCKER_CONTAINERS: %v", err)
+		logger().Warn("log-mcp: ignoring LOG_MCP_DOCKER_CONTAINERS", "error", err)
 		return nil
 	}
 	return d
@@ -193,7 +192,7 @@ func cfSourceFromEnv() *source.CFLogSource {
 	}
 	c, err := source.NewCFLogSource("cloudfoundry", apps, runner)
 	if err != nil {
-		log.Printf("log-mcp: ignoring LOG_MCP_CF_APPS: %v", err)
+		logger().Warn("log-mcp: ignoring LOG_MCP_CF_APPS", "error", err)
 		return nil
 	}
 	return c
