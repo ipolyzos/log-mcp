@@ -37,6 +37,8 @@ func TestServer_DefaultToolsList(t *testing.T) {
 	slices.Sort(names)
 	want := []string{
 		tools.ToolNameCorrelateEvents,
+		tools.ToolNameDetectAnomalies,
+		tools.ToolNameExtractTraceFlow,
 		tools.ToolNameFilterLogs,
 		tools.ToolNameGroupByField,
 		tools.ToolNameHealthCheck,

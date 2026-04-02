@@ -21,6 +21,7 @@ This document describes how **log-mcp** is structured today and how log data flo
 | Log query helpers | `internal/logtool` | Shared filter + collect over the pipeline (time, level, keyword). |
 | Error summarization | `internal/errsummary` | Deterministic ERROR-level grouping, frequency ranking, per-service counts (no LLM). |
 | Log correlation | `internal/logcorr` | Field-based grouping and timelines (`trace_id`, `request_id`, custom JSON keys). |
+| Log analysis | `internal/loganalysis` | Segment error-rate spikes, repeated-error bursts, ordered trace flow steps. |
 | Security | `internal/security` | CLI argv allowlists, read-only file checks, mandatory redaction entrypoint, env-driven I/O caps. |
 | Build metadata | `internal/buildinfo` | Static name/version for MCP `Implementation` and `version_info`. |
 
@@ -46,6 +47,8 @@ Tools apply to any configured backend the same way. When nothing is configured, 
 - **`summarize_errors`** — scans up to `max_scan_lines` (default 20000; upper bound `LOG_MCP_SEC_MAX_SCAN_LINES`), keeps ERROR/FATAL/CRITICAL-style levels, groups lines by a stable fingerprint ([`errsummary`](../internal/errsummary/summary.go): redaction + normalized message and error-related JSON fields), sorts groups by **count descending** then fingerprint ascending, and reports **by_service** using `service` / `app` / `logger` / … fields or the log file basename.
 - **`group_by_field`** — scans a capped prefix of the stream, groups lines that contain a JSON field. Logical names **`trace_id`** and **`request_id`** resolve common aliases (`traceId`, `x-trace-id`, `req_id`, `x-request-id`, …); any other `field` is matched case-insensitively on keys. Lines without the field are skipped; groups are ranked by **count descending**.
 - **`correlate_events`** — returns all lines in the scan window whose field value **exactly** matches `value`, ordered by timestamp then line number (for timelines along one trace or request).
+- **`detect_anomalies`** — scans redacted logs via [`loganalysis.DetectAnomalies`](../internal/loganalysis/anomaly.go): splits the stream into equal line-count segments, flags segments whose ERROR/FATAL/CRITICAL counts exceed the cross-segment mean by a configurable z-score, and lists highly repeated identical ERROR lines (FNV-1a hash of redacted text). Optional `segment_count`, `z_score_threshold`, `min_repeat_errors`.
+- **`extract_trace_flow`** — builds an ordered list of steps for one `trace_id` value (default logical field `trace_id`) via [`loganalysis.ExtractTraceFlow`](../internal/loganalysis/trace_flow.go): timestamps, `service` / `span_id` when present in JSON fields, level, message, and redacted line text.
 
 Outputs are **redacted** via [`internal/pipeline`](../internal/pipeline/pipeline.go) using [`security.RedactLine`](../internal/security/redact.go) (canonical [`normalize.DefaultConfig`](../internal/normalize/config.go); not configurable per tool). For tests or custom deployments, [`NewWithConfig`](../internal/server/server.go) accepts an explicit [`LogSource`](../internal/source/source.go).
 
@@ -56,7 +59,7 @@ Optional caps (positive integers; invalid or empty env falls back to defaults):
 - **`LOG_MCP_SEC_MAX_OUTPUT_LINES`** — max lines returned per `read_logs` / `search_logs` / `filter_logs` response (default 10000).
 - **`LOG_MCP_SEC_MAX_STREAM_BYTES`** — max raw bytes read per stream when `MaxBytes` is unset on the query (default 50 MiB); applied by [`logtool.EnrichQuery`](../internal/logtool/query.go) before pipeline runs.
 - **`LOG_MCP_SEC_MAX_LINE_BYTES`** — max bytes per raw line before redaction (default 1 MiB); applied in file and subprocess line readers when unset on the query.
-- **`LOG_MCP_SEC_MAX_SCAN_LINES`** — upper bound for `summarize_errors`, `group_by_field`, and `correlate_events` scans (default 100000).
+- **`LOG_MCP_SEC_MAX_SCAN_LINES`** — upper bound for scans in `summarize_errors`, `group_by_field`, `correlate_events`, `detect_anomalies`, and `extract_trace_flow` (default 100000).
 
 ### Command allowlist and read-only I/O
 
