@@ -65,8 +65,9 @@ updated docs should resolve within the repository. External URLs should be
 stable (official docs, standards).
 
 Authoritative technical detail belongs in [`docs/`](docs/) (see
-[`docs/README.md`](docs/README.md)); keep the root [`README.md`](README.md)
-as a short map into that folder when you change user-visible behavior.
+[`docs/README.md`](docs/README.md) and [`docs/development.md`](docs/development.md));
+keep the root [`README.md`](README.md) as a short map into that folder when you
+change user-visible behavior.
 
 Before pushing dependency changes, run **`go mod tidy`** and ensure
 `go.mod` / `go.sum` are committed (CI enforces a clean tidy).
@@ -76,9 +77,9 @@ Before pushing dependency changes, run **`go mod tidy`** and ensure
 - [ ] `go test ./...` and `go vet ./...` pass locally.
 - [ ] Changes are scoped to the problem you are solving (avoid unrelated
       refactors).
-- [ ] User-visible behavior or configuration changes are reflected in
-      `docs/architecture.md` (and the root `README.md` only if a one-line
-      pointer or summary is needed).
+- [ ] User-visible behavior or configuration changes are reflected in the right
+      `docs/*.md` files (see [`docs/development.md`](docs/development.md)) and the
+      root `README.md` only if a one-line pointer or summary is needed.
 
 ## License
 

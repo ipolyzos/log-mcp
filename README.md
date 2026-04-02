@@ -9,8 +9,14 @@ Read-only [Model Context Protocol](https://modelcontextprotocol.io/) (MCP) serve
 | Resource | Purpose |
 |----------|---------|
 | [**docs/README.md**](docs/README.md) | Documentation index and update guidance. |
-| [**docs/architecture.md**](docs/architecture.md) | **Canonical reference:** MCP wiring, every tool, `LOG_MCP_*` / `LOG_MCP_SEC_*`, sources (file, Kubernetes, Docker, Cloud Foundry), parsing, normalization, pipeline. |
-| [**docs/testing-and-ci.md**](docs/testing-and-ci.md) | Parser fixtures, `go test` / vet, `govulncheck`, `go mod tidy` gate, workflows, releases. |
+| [**docs/architecture.md**](docs/architecture.md) | **System design:** MCP stdio, sources, security limits, parsing, normalization, pipeline. |
+| [**docs/tools.md**](docs/tools.md) | **Tool reference:** parameters and JSON results for every MCP tool. |
+| [**docs/client-contract.md**](docs/client-contract.md) | Stdio/MCP expectations and how errors surface. |
+| [**docs/usage.md**](docs/usage.md) | Build, env vars, host configuration, workflows. |
+| [**docs/development.md**](docs/development.md) | Contributor workflow and doc ownership. |
+| [**docs/testing-and-ci.md**](docs/testing-and-ci.md) | Tests, fixtures, `govulncheck`, `go mod tidy` gate, CI workflows. |
+| [**docs/releases.md**](docs/releases.md) | Tags, release builds, versioning. |
+| [**docs/troubleshooting.md**](docs/troubleshooting.md) | Common failures and fixes. |
 | [CONTRIBUTING.md](CONTRIBUTING.md) | Branches, build/test commands, PR checklist. |
 | [SECURITY.md](SECURITY.md) | Reporting vulnerabilities. |
 | [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) | Community expectations. |
@@ -25,7 +31,7 @@ Active development on the `develop` branch. The MCP tool surface and JSON shapes
 - **Transport:** MCP over **stdio** via `github.com/modelcontextprotocol/go-sdk/mcp` (`StdioTransport`). **stdout** is reserved for MCP JSON-RPC; diagnostics must use **stderr** so the channel stays valid.
 - **Lifecycle:** `cmd/log-mcp` installs signal handling, then `server.Run` blocks until disconnect or interrupt.
 - **Identity:** MCP `Implementation` and the `version_info` tool use [`internal/buildinfo`](internal/buildinfo/buildinfo.go). Release binaries can stamp `Version` with `-ldflags` (see [`.github/workflows/release.yml`](.github/workflows/release.yml)).
-- **Registration:** [`internal/server.NewWithConfig`](internal/server/server.go) builds `mcp.NewServer` and applies [`internal/tools`](internal/tools/registry.go) in order: health → version → log tools → LLM-oriented helpers. See [**tool catalog →**](docs/architecture.md#log-mcp-tools).
+- **Registration:** [`internal/server.NewWithConfig`](internal/server/server.go) builds `mcp.NewServer` and applies [`internal/tools`](internal/tools/registry.go) in order: health → version → log tools → LLM-oriented helpers. See [**tools.md →**](docs/tools.md) (parameters and JSON) and [**architecture →**](docs/architecture.md#log-mcp-tools) (sources and env vars).
 - **Log source:** Optional [`source.LogSource`](internal/source/source.go) from the environment (`LOG_MCP_ROOT`, Kubernetes, Docker, Cloud Foundry allowlists — [**full list →**](docs/architecture.md#log-source-abstraction)). If unset, log-backed tools still register but return a clear configuration error; `incident_summary` and `explain_log_pattern` do not need a source.
 
 **Redaction and limits** (`LOG_MCP_SEC_*`, argv allowlists, read-only file access): [**security section →**](docs/architecture.md#security-limits-log_mcp_sec_).
@@ -38,7 +44,7 @@ Active development on the `develop` branch. The MCP tool surface and JSON shapes
 | `internal/server` | MCP session wiring, `Run`. |
 | `internal/tools` | Tool registry and implementations. |
 | `internal/source`, `internal/pipeline`, `internal/parse`, `internal/security`, … | Sources, streaming pipeline, parsers, redaction, analysis. |
-| `docs/` | Architecture, testing/CI, doc index. |
+| `docs/` | Architecture, tools reference, usage, CI, releases, troubleshooting. |
 | `test/` | Pointers to shared fixtures (see [`test/fixtures/logs/README.md`](test/fixtures/logs/README.md)). |
 | `.github/workflows/` | CI, docs checks, benchmarks, release builds. |
 
