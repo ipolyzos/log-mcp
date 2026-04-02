@@ -110,6 +110,36 @@ func TestDetectAnomalies_levelSpike(t *testing.T) {
 	}
 }
 
+func TestDetectAnomalies_kubernetesCRI_shapedLines(t *testing.T) {
+	t.Parallel()
+	src := &sliceSource{
+		id: "k",
+		lines: []string{
+			`2024-06-15T10:30:01.123456789Z stdout F GET /healthz HTTP/1.1 200`,
+			`2024-06-15T10:30:02Z stderr F connection refused to redis.cache.svc.cluster.local:6379`,
+			`2024-06-15T10:30:03Z stdout F GET /upstream HTTP/1.1 503`,
+		},
+	}
+	rep, err := DetectAnomalies(context.Background(), src, "k", AnomalyOptions{
+		MaxScanLines:    50,
+		SegmentCount:    15,
+		ZScoreThreshold: 1,
+		MinRepeatErrors: 10,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if rep.ScannedLines != 3 {
+		t.Fatalf("scanned: %d", rep.ScannedLines)
+	}
+	if !rep.LowSample {
+		t.Fatalf("expected low_sample for tiny CRI stream: %+v", rep)
+	}
+	if len(rep.LevelSpikeSegments) != 0 {
+		t.Fatalf("expected no spikes: %+v", rep.LevelSpikeSegments)
+	}
+}
+
 func TestDetectAnomalies_lowSample_scannedLessThanSegmentCount(t *testing.T) {
 	t.Parallel()
 	var lines []string
