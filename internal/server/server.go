@@ -15,8 +15,9 @@ import (
 
 // Config configures optional server dependencies.
 type Config struct {
-	// LogSource backs read/search/filter logs, summarize_errors, and correlation tools.
+	// LogSource backs read/search/filter logs, summarize_errors, correlation, and analysis tools.
 	// If nil, those tools still register but return an error until configured.
+	// incident_summary and explain_log_pattern do not use LogSource (structured JSON only).
 	LogSource source.LogSource
 }
 
@@ -36,6 +37,7 @@ func NewWithConfig(cfg Config) *mcp.Server {
 	reg.Register(tools.RegisterHealthCheck)
 	reg.Register(tools.RegisterVersionInfo)
 	reg.Register(tools.RegisterLogTools(cfg.LogSource))
+	reg.Register(tools.RegisterLLMTools)
 	reg.Apply(srv)
 	return srv
 }

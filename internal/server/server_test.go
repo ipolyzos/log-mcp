@@ -38,10 +38,12 @@ func TestServer_DefaultToolsList(t *testing.T) {
 	want := []string{
 		tools.ToolNameCorrelateEvents,
 		tools.ToolNameDetectAnomalies,
+		tools.ToolNameExplainLogPattern,
 		tools.ToolNameExtractTraceFlow,
 		tools.ToolNameFilterLogs,
 		tools.ToolNameGroupByField,
 		tools.ToolNameHealthCheck,
+		tools.ToolNameIncidentSummary,
 		tools.ToolNameReadLogs,
 		tools.ToolNameSearchLogs,
 		tools.ToolNameSummarizeErrors,
@@ -50,6 +52,76 @@ func TestServer_DefaultToolsList(t *testing.T) {
 	slices.Sort(want)
 	if !slices.Equal(names, want) {
 		t.Fatalf("tool names: got %v want %v", names, want)
+	}
+}
+
+func TestServer_LLMReasoningTools_noLogSource(t *testing.T) {
+	ctx := context.Background()
+	srv := NewWithConfig(Config{})
+	ct, st := mcp.NewInMemoryTransports()
+	if _, err := srv.Connect(ctx, st, nil); err != nil {
+		t.Fatal(err)
+	}
+	client := mcp.NewClient(&mcp.Implementation{Name: "test-client", Version: "0"}, nil)
+	session, err := client.Connect(ctx, ct, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = session.Close() })
+
+	isRes, err := session.CallTool(ctx, &mcp.CallToolParams{
+		Name: tools.ToolNameIncidentSummary,
+		Arguments: map[string]any{
+			"structured_summary": map[string]any{
+				"groups": []any{
+					map[string]any{"rank": 1, "count": 2, "pattern": "timeout"},
+				},
+				"error_line_count": float64(2),
+			},
+		},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if isRes.IsError {
+		t.Fatalf("incident_summary: %+v", isRes)
+	}
+	b, err := json.Marshal(isRes.StructuredContent)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var isOut tools.IncidentSummaryOutput
+	if err := json.Unmarshal(b, &isOut); err != nil {
+		t.Fatal(err)
+	}
+	if isOut.Headline == "" || len(isOut.Bullets) == 0 {
+		t.Fatalf("incident_summary output: %+v", isOut)
+	}
+
+	epRes, err := session.CallTool(ctx, &mcp.CallToolParams{
+		Name: tools.ToolNameExplainLogPattern,
+		Arguments: map[string]any{
+			"error_group": map[string]any{
+				"rank": float64(1), "count": float64(5), "pattern": "boom", "fingerprint": "fp1",
+			},
+		},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if epRes.IsError {
+		t.Fatalf("explain_log_pattern: %+v", epRes)
+	}
+	b2, err := json.Marshal(epRes.StructuredContent)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var epOut tools.ExplainLogPatternOutput
+	if err := json.Unmarshal(b2, &epOut); err != nil {
+		t.Fatal(err)
+	}
+	if epOut.Overview == "" {
+		t.Fatalf("explain output: %+v", epOut)
 	}
 }
 
