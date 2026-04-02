@@ -1,0 +1,3 @@
+# log4c category line (synthetic).
+# Ref: https://log4c.sourceforge.net/
+[INFO] net (tcp.c:101) - accepted connection from 198.51.100.10:4432 fd=18

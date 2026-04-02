@@ -1,0 +1,9 @@
+# Opinionated "golden stack" for polyglot services: one JSON object per line on stdout.
+# Schema: timestamp, level, service, trace_id, span_id, message (OpenTelemetry trace correlation).
+# Transport: stdout -> Fluent Bit -> Elasticsearch or Loki; traces: OTel + Jaeger (see project docs).
+# Ref: https://opentelemetry.io/docs/concepts/signals/logs/
+{"timestamp":"2024-08-20T12:30:00.000Z","level":"INFO","service":"checkout-java","trace_id":"4bf92f3577b34da6a3ce929d0e0e4736","span_id":"00f067aa0ba902b7","message":"inventory reserved"}
+{"timestamp":"2024-08-20T12:30:00.100Z","level":"INFO","service":"payments-python","trace_id":"4bf92f3577b34da6a3ce929d0e0e4736","span_id":"11f067aa0ba902b8","message":"capture succeeded"}
+{"timestamp":"2024-08-20T12:30:00.200Z","level":"WARN","service":"api-node","trace_id":"4bf92f3577b34da6a3ce929d0e0e4736","span_id":"22f067aa0ba902b9","message":"retrying card network"}
+{"timestamp":"2024-08-20T12:30:00.300Z","level":"INFO","service":"gateway-rust","trace_id":"4bf92f3577b34da6a3ce929d0e0e4736","span_id":"33f067aa0ba902ba","message":"routed to upstream"}
+{"timestamp":"2024-08-20T12:30:00.400Z","level":"INFO","service":"auth-dotnet","trace_id":"4bf92f3577b34da6a3ce929d0e0e4736","span_id":"44f067aa0ba902bb","message":"token validated"}

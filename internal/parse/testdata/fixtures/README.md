@@ -41,5 +41,25 @@ systems; formats follow public documentation.
 | `32_azure_blob.log` | [Monitor Azure Blob Storage](https://learn.microsoft.com/en-us/azure/storage/blobs/monitor-blob-storage) |
 | `33_cortex_ingester.log` | [Grafana Mimir: run in production](https://grafana.com/docs/mimir/latest/manage/run-production-environment/) (Cortex/Mimir family) |
 | `34_gcp_cloud_functions.log` | [Cloud Run logging](https://cloud.google.com/run/docs/logging) (GCP managed runtime JSON style) |
+| `35_java_log4j2_json.log` | [Log4j 2 JSON layout](https://logging.apache.org/log4j/2.x/manual/layouts.html#JSONLayout) |
+| `36_java_logback_logstash_encoder.log` | [logstash-logback-encoder](https://github.com/logfellow/logstash-logback-encoder) |
+| `37_java_slf4j_jackson_app.log` | [SLF4J user manual](https://www.slf4j.org/manual.html) (app JSON via logging facade) |
+| `38_java_micrometer_observation.log` | [Micrometer observations](https://micrometer.io/docs/observation) |
+| `39_java_opentelemetry_sdk.log` | [OpenTelemetry Java](https://opentelemetry.io/docs/languages/java/) |
+| `40_python_json_logger.log` | [python-json-logger](https://pypi.org/project/python-json-logger/) |
+| `41_python_structlog.log` | [structlog](https://www.structlog.org/en/stable/) |
+| `42_javascript_pino.log` | [Pino](https://getpino.io/#/docs/api) |
+| `43_javascript_winston.log` | [Winston](https://github.com/winstonjs/winston#logging) |
+| `44_javascript_opentelemetry_sdk.log` | [OpenTelemetry JS](https://opentelemetry.io/docs/languages/js/) |
+| `45_rust_tracing_subscriber.log` | [tracing-subscriber fmt](https://docs.rs/tracing-subscriber/latest/tracing_subscriber/fmt/index.html) |
+| `46_rust_log_env_logger.log` | [env_logger](https://docs.rs/env_logger/latest/env_logger/) |
+| `47_cpp_spdlog.log` | [spdlog](https://github.com/gabime/spdlog) |
+| `48_c_log4c.log` | [log4c](https://log4c.sourceforge.net/) |
+| `49_cpp_qlog_event.log` | [qlog (QUIC)](https://datatracker.ietf.org/doc/html/draft-ietf-quic-qlog-h3-events) (single-line event) |
+| `50_cpp_opentelemetry_sdk.log` | [OpenTelemetry C++](https://opentelemetry.io/docs/languages/cpp/) |
+| `51_csharp_microsoft_extensions_logging.log` | [.NET console log formatter](https://learn.microsoft.com/en-us/dotnet/core/extensions/console-log-formatter) |
+| `52_csharp_serilog_compact_json.log` | [Serilog formatting](https://github.com/serilog/serilog/wiki/Formatting-Output) |
+| `53_csharp_serilog_json_formatter.log` | [Serilog.Formatting.Compact](https://github.com/serilog/serilog-formatting-compact) |
+| `54_golden_stack_polyglot.log` | [OpenTelemetry logs](https://opentelemetry.io/docs/concepts/signals/logs/) (shared JSON schema for Fluent Bit → ES/Loki + Jaeger) |
 
 Extend [`fixtures_test.go`](../../fixtures_test.go) when adding files.

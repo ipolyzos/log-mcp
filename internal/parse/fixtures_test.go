@@ -135,6 +135,15 @@ func TestFixtureLogLines_ExpectedSubstrings(t *testing.T) {
 		{"44_javascript_opentelemetry_sdk.log", 0, "opentelemetry"},
 		{"45_rust_tracing_subscriber.log", 0, "readiness"},
 		{"46_rust_log_env_logger.log", 0, "pool"},
+		{"47_cpp_spdlog.log", 0, "upstream"},
+		{"48_c_log4c.log", 0, "accepted"},
+		{"49_cpp_qlog_event.log", 0, "recovery"},
+		{"50_cpp_opentelemetry_sdk.log", 0, "OTLP"},
+		{"51_csharp_microsoft_extensions_logging.log", 0, "stopping"},
+		{"52_csharp_serilog_compact_json.log", 0, "SQL"},
+		{"53_csharp_serilog_json_formatter.log", 0, "cache"},
+		{"54_golden_stack_polyglot.log", 0, "inventory"},
+		{"54_golden_stack_polyglot.log", 4, "validated"},
 	}
 	for _, tc := range cases {
 		t.Run(tc.file+"_"+strconv.Itoa(tc.lineIdx), func(t *testing.T) {
@@ -182,4 +191,62 @@ func nthFixtureLine(t *testing.T, file string, idx int) string {
 	}
 	t.Fatalf("file %q: no line at index %d", file, idx)
 	return ""
+}
+
+func TestGoldenStackPolyglot_ParseSchema(t *testing.T) {
+	t.Parallel()
+	a := AutoParser{}
+	const goldenFile = "54_golden_stack_polyglot.log"
+	data, err := fixtureLogs.ReadFile(path.Join("testdata/fixtures", goldenFile))
+	if err != nil {
+		t.Fatal(err)
+	}
+	wantServices := []string{
+		"checkout-java",
+		"payments-python",
+		"api-node",
+		"gateway-rust",
+		"auth-dotnet",
+	}
+	const sharedTrace = "4bf92f3577b34da6a3ce929d0e0e4736"
+	sc := bufio.NewScanner(bytes.NewReader(data))
+	n := 0
+	for sc.Scan() {
+		line := strings.TrimSpace(sc.Text())
+		if line == "" || strings.HasPrefix(line, "#") {
+			continue
+		}
+		got, err := a.Parse(line)
+		if err != nil {
+			t.Fatalf("line %d: %v", n, err)
+		}
+		if got.Timestamp == nil {
+			t.Errorf("line %d: missing timestamp", n)
+		}
+		if got.Level == "" {
+			t.Errorf("line %d: missing level", n)
+		}
+		if strings.TrimSpace(got.Message) == "" {
+			t.Errorf("line %d: missing message", n)
+		}
+		if n >= len(wantServices) {
+			t.Fatalf("extra data line %d", n)
+		}
+		if got.Fields["service"] != wantServices[n] {
+			t.Errorf("line %d: service got %q want %q", n, got.Fields["service"], wantServices[n])
+		}
+		if got.Fields["trace_id"] != sharedTrace {
+			t.Errorf("line %d: trace_id got %q want %q", n, got.Fields["trace_id"], sharedTrace)
+		}
+		if got.Fields["span_id"] == "" {
+			t.Errorf("line %d: missing span_id", n)
+		}
+		n++
+	}
+	if err := sc.Err(); err != nil {
+		t.Fatal(err)
+	}
+	if n != len(wantServices) {
+		t.Fatalf("want %d golden lines, got %d", len(wantServices), n)
+	}
 }
