@@ -1,0 +1,38 @@
+name: PR Check
+
+# Merge gate: this job succeeds only when reusable CI and Docs workflows complete
+# successfully for this pull request. Configure branch protection to require the
+# check named "merge requirements satisfied" (or the full PR Check workflow).
+
+on:
+  pull_request:
+    branches:
+      - main
+      - develop
+
+concurrency:
+  group: pr-check-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  ci:
+    name: Required CI
+    uses: ./.github/workflows/ci-reusable.yml
+    secrets: inherit
+
+  docs:
+    name: Required Docs
+    uses: ./.github/workflows/docs-reusable.yml
+    secrets: inherit
+
+  merge-requirements:
+    name: merge requirements satisfied
+    needs: [ci, docs]
+    runs-on: ubuntu-latest
+    steps:
+      - name: All required checks passed
+        run: |
+          echo "CI (go vet, golangci-lint, go test, go build) and documentation checks passed."

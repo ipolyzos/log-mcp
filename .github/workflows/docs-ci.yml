@@ -1,0 +1,27 @@
+name: Docs CI
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+      - "feature/**"
+      - "fix/**"
+      - "chore/**"
+      - "ci/**"
+  pull_request:
+    branches:
+      - main
+      - develop
+
+concurrency:
+  group: docs-ci-${{ github.workflow }}-${{ github.event.pull_request.head.ref || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  docs:
+    uses: ./.github/workflows/docs-reusable.yml
+    secrets: inherit
