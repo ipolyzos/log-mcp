@@ -39,6 +39,15 @@ payloads.
 go test -count=1 ./internal/server/ -run Integration_stdio
 ```
 
+### Golden JSON tool contracts
+
+[`golden_json_test.go`](../internal/tools/golden_json_test.go) compares
+**`encoding/json`** output (two-space indent) to files under
+[`internal/tools/testdata/golden/`](../internal/tools/testdata/golden/) so
+stable **`read_logs` / `filter_logs`-style** and **`detect_anomalies`** shapes
+stay documented in-repo. Update the golden files when adding or renaming
+exported result fields.
+
 ## Dependency and security checks
 
 CI runs **`govulncheck ./...`** against the Go version in [`go.mod`](../go.mod).
@@ -64,6 +73,7 @@ Pull requests run:
 | **golangci-lint** | Enabled linters in [`.golangci.yml`](../.golangci.yml); version pinned in [`.github/workflows/ci-reusable.yml`](../.github/workflows/ci-reusable.yml). |
 | **gosec** | Security-oriented rules (`gosec ./...`). |
 | **govulncheck** | Known vulnerability database for the module graph. |
+| **go test -bench smoke** | CI runs a short **`go test -bench`** pass (no tests; ~100ms bench time per package) via [`ci-reusable.yml`](../.github/workflows/ci-reusable.yml). |
 
 Match **golangci-lint** to CI when running locally (see workflow file for the
 current binary version).
@@ -78,7 +88,7 @@ external URLs in new links.
 
 | Workflow | When | Notes |
 |----------|------|-------|
-| [ci.yml](../.github/workflows/ci.yml) | Push/PR to configured branches | Invokes reusable Go jobs. |
+| [ci.yml](../.github/workflows/ci.yml) | Push/PR to configured branches | Invokes reusable Go jobs (includes bench smoke). |
 | [pr-check.yml](../.github/workflows/pr-check.yml) | PRs to `main` / `develop` | Gates on CI + docs. |
 | [docs-ci.yml](../.github/workflows/docs-ci.yml) | Docs-focused runs | Link + markdown lint. |
 | [benchmark.yml](../.github/workflows/benchmark.yml) | Selected branches | Benchmark job. |
