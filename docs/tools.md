@@ -38,7 +38,7 @@ Release builds should stamp `version` via `-ldflags` (see [releases.md](releases
 
 ## `read_logs`
 
-Sequential read with optional filters. If **no** time/level/keyword filters are set,
+Sequential read with optional filters. If **no** time/level/keyword/`keywords_any` filters are set,
 reads up to **`max_lines`** without scanning the entire file (tail-style where the
 source supports it).
 
@@ -49,7 +49,8 @@ source supports it).
 | Params | `since` | string | no | RFC3339 inclusive lower bound. |
 | Params | `until` | string | no | RFC3339 inclusive upper bound. |
 | Params | `level` | string | no | e.g. `INFO`, `WARN`, `ERROR`. |
-| Params | `keyword` | string | no | Case-insensitive substring on **redacted** line. |
+| Params | `keyword` | string | no | Case-insensitive substring on **redacted** line. Mutually exclusive with `keywords_any` in one call. |
+| Params | `keywords_any` | string[] | no | OR list: line must contain **at least one** term (case-insensitive). Max **32** terms, **256** bytes each after trim. Mutually exclusive with `keyword`. |
 | Result | `stream_id` | string | yes | Echo. |
 | Result | `lines` | array | yes | Objects: `line_number`, `timestamp?`, `level?`, `message?`, `text`. |
 | Result | `truncated` | bool | yes | True if more lines existed beyond caps. |
@@ -78,16 +79,17 @@ Return lines where **every** filter you pass is satisfied (**boolean AND**).
 
 | Rule | Detail |
 |------|--------|
-| **Minimum** | At least **one** of `since`, `until`, `level`, `keyword` must be set (non-empty after trim). Otherwise the tool errors. |
+| **Minimum** | At least **one** of `since`, `until`, `level`, `keyword`, `keywords_any` must be set (non-empty after trim / non-empty list). Otherwise the tool errors. |
 | **AND** | If you set multiple predicates, a line is returned only if it matches **all** of them. Omitted parameters are not applied. |
 | **Time** | `since` / `until` are **inclusive** RFC3339 bounds on the parsed timestamp when present; both may be set → line must fall in `[since, until]`. |
 | **Level** | Exact match on the normalized level string the pipeline extracted (e.g. `ERROR`), when that field is set. |
-| **Keyword** | Case-insensitive substring on the **redacted** full line text (`text`). |
+| **Keyword** | Case-insensitive substring on the **redacted** full line text (`text`). Do not set together with `keywords_any`. |
+| **keywords_any** | OR across terms: the **redacted** line must contain **at least one** entry (case-insensitive). Capped at **32** terms, **256** bytes per term. Mutually exclusive with `keyword` in the same request. |
 
 ### Contrast with `search_logs`
 
 - **`search_logs`** requires **`keyword`** and optionally ANDs `since` / `until` / `level`.
-- **`filter_logs`** does **not** require `keyword`; use it when you want **level-only** or **time-only** slices, or **level + keyword** without treating keyword as the primary search axis.
+- **`filter_logs`** does **not** require `keyword`; use **`keywords_any`** when you need **OR** substrings (with time/level still ANDed). Use it for **level-only** or **time-only** slices, or **level + keyword** without treating keyword as the primary search axis.
 
 ### Examples (arguments only)
 
@@ -111,15 +113,26 @@ Return lines where **every** filter you pass is satisfied (**boolean AND**).
 
 Second example: lines must be **inside the window** **and** contain `timeout` (and respect `max_lines`).
 
-### OR filters and query DSL
+```json
+{
+  "stream_id": "/var/log/app.log",
+  "level": "ERROR",
+  "keywords_any": ["timeout", "connection refused", "503"],
+  "max_lines": 50
+}
+```
 
-There is **no** OR-combine mode and **no** query mini-language in v0.1.x. To approximate OR, run **`filter_logs`** (or **`search_logs`**) **more than once** with different parameters and merge results client-side, or open a [discussion/issue](https://github.com/ipolyzos/log-mcp/issues) if a first-class OR mode or tiny DSL would unblock you—we will only add it when real integrations need it.
+Third example: **ERROR** lines that contain **any** of the listed substrings.
+
+### OR on substrings
+
+Use **`keywords_any`** on **`filter_logs`** (and optionally **`read_logs`**) for **OR** matching on the redacted line. **`search_logs`** remains single-`keyword` only. There is still **no** general query DSL; combine with multiple tool calls when you need richer logic.
 
 | Direction | Field | Type | Required | Notes |
 |-----------|-------|------|----------|-------|
 | Params | `stream_id` | string | yes | |
 | Params | `max_lines` | int64 | no | Default **500**. |
-| Params | `since`, `until`, `level`, `keyword` | string | no | At least **one** must be non-empty; **all set fields** are **AND**ed. |
+| Params | `since`, `until`, `level`, `keyword`, `keywords_any` | string / string[] | no | At least **one** predicate must be non-empty; **all set fields** are **AND**ed; `keyword` xor `keywords_any` for text. |
 | Result | | | | Same shape as `read_logs` result. |
 
 ---

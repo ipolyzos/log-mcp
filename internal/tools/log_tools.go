@@ -27,12 +27,13 @@ const (
 
 // readLogsInput is the payload for read_logs.
 type readLogsInput struct {
-	StreamID string  `json:"stream_id" jsonschema:"required log stream id (path) from the configured source"`
-	MaxLines *int64  `json:"max_lines,omitempty" jsonschema:"max lines to return; omit for default"`
-	Since    *string `json:"since,omitempty" jsonschema:"optional RFC3339 lower time bound (inclusive)"`
-	Until    *string `json:"until,omitempty" jsonschema:"optional RFC3339 upper time bound (inclusive)"`
-	Level    *string `json:"level,omitempty" jsonschema:"optional log level e.g. INFO WARN ERROR"`
-	Keyword  *string `json:"keyword,omitempty" jsonschema:"optional case-insensitive substring on redacted line"`
+	StreamID    string   `json:"stream_id" jsonschema:"required log stream id (path) from the configured source"`
+	MaxLines    *int64   `json:"max_lines,omitempty" jsonschema:"max lines to return; omit for default"`
+	Since       *string  `json:"since,omitempty" jsonschema:"optional RFC3339 lower time bound (inclusive)"`
+	Until       *string  `json:"until,omitempty" jsonschema:"optional RFC3339 upper time bound (inclusive)"`
+	Level       *string  `json:"level,omitempty" jsonschema:"optional log level e.g. INFO WARN ERROR"`
+	Keyword     *string  `json:"keyword,omitempty" jsonschema:"optional case-insensitive substring on redacted line"`
+	KeywordsAny []string `json:"keywords_any,omitempty" jsonschema:"optional OR list: line must contain at least one term (case-insensitive); mutually exclusive with keyword"`
 }
 
 // searchLogsInput is the payload for search_logs.
@@ -47,12 +48,13 @@ type searchLogsInput struct {
 
 // filterLogsInput is the payload for filter_logs.
 type filterLogsInput struct {
-	StreamID string  `json:"stream_id" jsonschema:"required log stream id (path) from the configured source"`
-	MaxLines *int64  `json:"max_lines,omitempty" jsonschema:"max matching lines to return; omit for default"`
-	Since    *string `json:"since,omitempty" jsonschema:"optional RFC3339 lower time bound (inclusive); ANDed with until/level/keyword when set"`
-	Until    *string `json:"until,omitempty" jsonschema:"optional RFC3339 upper time bound (inclusive); ANDed with since/level/keyword when set"`
-	Level    *string `json:"level,omitempty" jsonschema:"optional log level e.g. INFO WARN ERROR; ANDed with time range and keyword when set"`
-	Keyword  *string `json:"keyword,omitempty" jsonschema:"optional case-insensitive substring on redacted line; ANDed with time range and level when set"`
+	StreamID    string   `json:"stream_id" jsonschema:"required log stream id (path) from the configured source"`
+	MaxLines    *int64   `json:"max_lines,omitempty" jsonschema:"max matching lines to return; omit for default"`
+	Since       *string  `json:"since,omitempty" jsonschema:"optional RFC3339 lower time bound (inclusive); ANDed with until/level/keyword when set"`
+	Until       *string  `json:"until,omitempty" jsonschema:"optional RFC3339 upper time bound (inclusive); ANDed with since/level/keyword when set"`
+	Level       *string  `json:"level,omitempty" jsonschema:"optional log level e.g. INFO WARN ERROR; ANDed with time range and keyword when set"`
+	Keyword     *string  `json:"keyword,omitempty" jsonschema:"optional case-insensitive substring on redacted line; ANDed with time range and level when set; mutually exclusive with keywords_any"`
+	KeywordsAny []string `json:"keywords_any,omitempty" jsonschema:"optional OR list on redacted line; ANDed with time range and level; mutually exclusive with keyword"`
 }
 
 // LogsToolOutput is the structured result for read_logs, search_logs, and filter_logs.
@@ -77,7 +79,7 @@ func RegisterLogTools(src source.LogSource) Installer {
 	return func(s *mcp.Server) {
 		mcp.AddTool(s, &mcp.Tool{
 			Name:        ToolNameReadLogs,
-			Description: "Read log lines from a stream with optional limits and filters (time range, level, keyword). Lines are redacted. Use stream_id from the source (e.g. absolute file path under LOG_MCP_ROOT). When no filters are set, reads sequentially up to max_lines without scanning the whole file.",
+			Description: "Read log lines from a stream with optional limits and filters (time range, level, keyword or keywords_any OR list). Lines are redacted. Use stream_id from the source (e.g. absolute file path under LOG_MCP_ROOT). When no filters are set, reads sequentially up to max_lines without scanning the whole file.",
 		}, readLogsHandler(src))
 		mcp.AddTool(s, &mcp.Tool{
 			Name:        ToolNameSearchLogs,
@@ -85,7 +87,7 @@ func RegisterLogTools(src source.LogSource) Installer {
 		}, searchLogsHandler(src))
 		mcp.AddTool(s, &mcp.Tool{
 			Name:        ToolNameFilterLogs,
-			Description: "Return redacted log lines where every supplied predicate matches (boolean AND). You must set at least one of: since, until, level, keyword. Omit a field to skip that predicate. Example: level=ERROR and keyword=timeout keeps only lines that are both ERROR and contain \"timeout\". For OR across alternatives or a query language, use multiple tool calls or file an issue—no OR/DSL mode yet.",
+			Description: "Return redacted log lines where every supplied predicate matches (boolean AND across time, level, and text). You must set at least one of: since, until, level, keyword, keywords_any. Use keywords_any for OR across substrings on the redacted line (mutually exclusive with keyword in one call). Example: level=ERROR and keyword=timeout keeps ERROR lines containing timeout; level=INFO and keywords_any=[\"a\",\"b\"] keeps INFO lines containing a or b.",
 		}, filterLogsHandler(src))
 		registerSummarizeErrors(s, src)
 		registerCorrelationTools(s, src)
@@ -103,7 +105,7 @@ func readLogsHandler(src source.LogSource) func(context.Context, *mcp.CallToolRe
 			return nil, LogsToolOutput{}, fmt.Errorf("stream_id is required")
 		}
 		max := clampMax(ptrInt64(in.MaxLines), defaultReadMax)
-		f, err := filterFromStrings(ptrStr(in.Since), ptrStr(in.Until), ptrStr(in.Level), ptrStr(in.Keyword))
+		f, err := buildFilter(ptrStr(in.Since), ptrStr(in.Until), ptrStr(in.Level), ptrStr(in.Keyword), in.KeywordsAny)
 		if err != nil {
 			return nil, LogsToolOutput{}, err
 		}
@@ -155,12 +157,12 @@ func filterLogsHandler(src source.LogSource) func(context.Context, *mcp.CallTool
 		if sid == "" {
 			return nil, LogsToolOutput{}, fmt.Errorf("stream_id is required")
 		}
-		f, err := filterFromStrings(ptrStr(in.Since), ptrStr(in.Until), ptrStr(in.Level), ptrStr(in.Keyword))
+		f, err := buildFilter(ptrStr(in.Since), ptrStr(in.Until), ptrStr(in.Level), ptrStr(in.Keyword), in.KeywordsAny)
 		if err != nil {
 			return nil, LogsToolOutput{}, err
 		}
 		if f.Empty() {
-			return nil, LogsToolOutput{}, fmt.Errorf("filter_logs requires at least one of: since, until, level, keyword")
+			return nil, LogsToolOutput{}, fmt.Errorf("filter_logs requires at least one of: since, until, level, keyword, keywords_any")
 		}
 		max := clampMax(ptrInt64(in.MaxLines), defaultFilterMax)
 		q := source.Query{StreamID: sid}
@@ -204,7 +206,16 @@ func clampMax(n, def int64) int64 {
 	return n
 }
 
+const (
+	maxKeywordsAny  = 32
+	maxKeywordBytes = 256
+)
+
 func filterFromStrings(since, until, level, keyword string) (logtool.Filter, error) {
+	return buildFilter(since, until, level, keyword, nil)
+}
+
+func buildFilter(since, until, level, keyword string, keywordsAny []string) (logtool.Filter, error) {
 	var f logtool.Filter
 	var err error
 	f.Since, err = parseRFC3339Optional(since)
@@ -216,8 +227,35 @@ func filterFromStrings(since, until, level, keyword string) (logtool.Filter, err
 		return f, err
 	}
 	f.Level = strings.TrimSpace(level)
-	f.Keyword = strings.TrimSpace(keyword)
+	kw := strings.TrimSpace(keyword)
+	anyNorm := normalizeKeywordsAny(keywordsAny)
+	if kw != "" && len(anyNorm) > 0 {
+		return f, fmt.Errorf("use only one of keyword and keywords_any")
+	}
+	f.Keyword = kw
+	f.KeywordsAny = anyNorm
 	return f, nil
+}
+
+func normalizeKeywordsAny(xs []string) []string {
+	if len(xs) == 0 {
+		return nil
+	}
+	out := make([]string, 0, len(xs))
+	for _, x := range xs {
+		x = strings.TrimSpace(x)
+		if x == "" || len(x) > maxKeywordBytes {
+			continue
+		}
+		out = append(out, x)
+		if len(out) >= maxKeywordsAny {
+			break
+		}
+	}
+	if len(out) == 0 {
+		return nil
+	}
+	return out
 }
 
 func parseRFC3339Optional(s string) (*time.Time, error) {

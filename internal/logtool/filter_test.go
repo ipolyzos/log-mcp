@@ -58,3 +58,29 @@ func TestMatch_keywordLevelTime(t *testing.T) {
 		t.Fatal("missing timestamp should not match time filter")
 	}
 }
+
+func TestMatch_keywordsAnyOR(t *testing.T) {
+	t.Parallel()
+	base := pipeline.Result{
+		LineNumber: 1,
+		Redacted:   `alpha beta gamma`,
+		Parsed:     parse.ParsedLine{Level: "INFO"},
+	}
+	if !Match(Filter{KeywordsAny: []string{"omega", "beta"}}, base) {
+		t.Fatal("expected OR match on beta")
+	}
+	if Match(Filter{KeywordsAny: []string{"omega", "delta"}}, base) {
+		t.Fatal("expected no match")
+	}
+}
+
+func TestFilter_Empty_keywordsAny(t *testing.T) {
+	t.Parallel()
+	if !(Filter{KeywordsAny: []string{}}).Empty() {
+		t.Fatal("empty slice should not count")
+	}
+	f := Filter{KeywordsAny: []string{"x"}}
+	if f.Empty() {
+		t.Fatal("keywords_any should make non-empty")
+	}
+}
