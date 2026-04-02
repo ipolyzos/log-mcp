@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - **MCP stdio-style integration tests** in [internal/server/integration_stdio_test.go](internal/server/integration_stdio_test.go): JSON-RPC over piped **[`mcp.IOTransport`](https://pkg.go.dev/github.com/modelcontextprotocol/go-sdk/mcp#IOTransport)** (same framing as stdio), temp **`LOG_MCP_ROOT`**, **`filter_logs`** with full JSON arguments (`json.Unmarshal`), plus **`read_logs`**, **`health_check`**, and **`version_info`**.
+- **Kubernetes CRI plain-text parsing** in [internal/parse/text_parser.go](internal/parse/text_parser.go): recognize `stdout` / `stderr` with CRI tag **`F`** or **`P`** after an optional RFC3339 prefix; emit **`cri_stream`**; infer **ERROR** on **stderr** when the message matches operator-oriented failure needles (connection errors, timeouts, panic/fatal, permission/denied, etc.) so **`summarize_errors`** and **`detect_anomalies`** count those lines like other error-level logs.
 
 ### Planned
 

@@ -164,6 +164,73 @@ func TestAutoParser_malformedJSONFallsBackToText(t *testing.T) {
 	}
 }
 
+func TestTextParser_kubernetesCRI_stderrConnectionRefused(t *testing.T) {
+	t.Parallel()
+	p := TextParser{}
+	line := `2024-06-15T10:30:02Z stderr F connection refused to redis.cache.svc.cluster.local:6379`
+	got, err := p.Parse(line)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.Level != "ERROR" {
+		t.Fatalf("level: got %q want ERROR", got.Level)
+	}
+	if got.Fields == nil || got.Fields["cri_stream"] != "stderr" {
+		t.Fatalf("cri_stream: %v", got.Fields)
+	}
+	if !strings.Contains(got.Message, "connection refused") {
+		t.Fatalf("message: %q", got.Message)
+	}
+	if got.Timestamp == nil {
+		t.Fatal("expected timestamp")
+	}
+}
+
+func TestTextParser_kubernetesCRI_stdoutNoErrorLevel(t *testing.T) {
+	t.Parallel()
+	p := TextParser{}
+	line := `2024-06-15T10:30:01.123456789Z stdout F GET /healthz HTTP/1.1 200`
+	got, err := p.Parse(line)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.Level != "" {
+		t.Fatalf("level: got %q want empty", got.Level)
+	}
+	if got.Fields == nil || got.Fields["cri_stream"] != "stdout" {
+		t.Fatalf("cri_stream: %v", got.Fields)
+	}
+	if !strings.Contains(got.Message, "healthz") {
+		t.Fatalf("message: %q", got.Message)
+	}
+}
+
+func TestTextParser_kubernetesCRI_stderrBenignNoErrorLevel(t *testing.T) {
+	t.Parallel()
+	p := TextParser{}
+	line := `2024-06-01T12:00:00Z stderr F starting worker`
+	got, err := p.Parse(line)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.Level != "" {
+		t.Fatalf("benign stderr should not infer level, got %q", got.Level)
+	}
+}
+
+func TestTextParser_kubernetesCRI_stderrExplicitLevelWins(t *testing.T) {
+	t.Parallel()
+	p := TextParser{}
+	line := `2024-06-01T12:00:00Z stderr F WARN manual downgrade active`
+	got, err := p.Parse(line)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.Level != "WARN" {
+		t.Fatalf("level: got %q want WARN", got.Level)
+	}
+}
+
 func TestParseUnixPrefix(t *testing.T) {
 	t.Parallel()
 	got, err := ParseUnixPrefix("1715000000 INFO ping")
