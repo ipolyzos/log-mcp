@@ -1,0 +1,33 @@
+name: Docs (reusable)
+
+on:
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  markdown-lint:
+    name: Markdown lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Markdown lint
+        uses: DavidAnson/markdownlint-cli2-action@v16
+        with:
+          globs: |
+            **/*.md
+            !LICENSE
+          config: .markdownlint.yaml
+
+  link-check:
+    name: Link validation
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check links in Markdown
+        uses: lycheeverse/lychee-action@v2.6.0
+        with:
+          args: --verbose --no-progress --max-concurrency 4 './**/*.md'
