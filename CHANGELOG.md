@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Planned
+
+- Nothing else listed yet; see [GitHub issues](https://github.com/ipolyzos/log-mcp/issues).
+
+---
+
+## [0.1.3] — 2026-04-02
+
+Piped log input, retrieval and anomaly UX improvements, CRI-oriented parsing
+tweaks, CI bench smoke, golden tool JSON tests, and docs (K8s runbook, pipe shell
+patterns).
+
 ### Added
 
 - **Piped log input**: optional **`LOG_MCP_PIPE_FD`** (integer **≥ 3**) and **`stream_id` `pipe://`** to read line-delimited logs from an alternate file descriptor while MCP stdio uses fds 0–2 ([internal/source/pipe.go](internal/source/pipe.go), [internal/server/server.go](internal/server/server.go)). Documented in [usage.md](docs/usage.md#piped-logs-shell) and [architecture.md](docs/architecture.md).
@@ -25,9 +37,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **CRI stdout HTTP 5xx detection** ([internal/parse/text_parser.go](internal/parse/text_parser.go)): infer ERROR for access-log lines without an `HTTP/x.y` token (for example `GET /path 502`) and for structured `status=`, `http_status=`, `status_code=`, `response_status=`, and `resp_status=` fields in the 500–599 range.
 
-### Planned
+### Notes
 
-- Nothing else listed yet; see [GitHub issues](https://github.com/ipolyzos/log-mcp/issues).
+- Default **`internal/buildinfo.Version`** for non-`-ldflags` builds is **0.1.3**; release archives still stamp the tag via [`.github/workflows/release.yml`](.github/workflows/release.yml).
 
 ---
 
@@ -140,7 +152,8 @@ First stable release line: Model Context Protocol server for **read-only**, **re
 
 ---
 
-[Unreleased]: https://github.com/ipolyzos/log-mcp/compare/v0.1.2...HEAD
+[Unreleased]: https://github.com/ipolyzos/log-mcp/compare/v0.1.3...HEAD
+[0.1.3]: https://github.com/ipolyzos/log-mcp/compare/v0.1.2...v0.1.3
 [0.1.2]: https://github.com/ipolyzos/log-mcp/compare/v0.1.1...v0.1.2
 [0.1.1]: https://github.com/ipolyzos/log-mcp/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/ipolyzos/log-mcp/releases/tag/v0.1.0
