@@ -16,6 +16,7 @@ differ, treat **`docs/`** as the source of truth for behavior and configuration.
 | [testing-and-ci.md](testing-and-ci.md) | `go test`, fixtures, **`govulncheck`**, **`go mod tidy`** gate, workflow list. |
 | [releases.md](releases.md) | Branch flow, SemVer tags, **`release.yml`** artifacts, `-ldflags` version stamping. |
 | [CHANGELOG.md](../CHANGELOG.md) | Keep a Changelog history (**`[Unreleased]`** + tagged releases). |
+| [kubernetes-runbook.md](kubernetes-runbook.md) | **K8s** stream IDs, CRI-shaped lines, allowlisted namespaces, suggested MCP checks. |
 | [troubleshooting.md](troubleshooting.md) | Missing log source, `stream_id`, RFC3339, `filter_logs` / JSON args, kubectl/docker/cf, stdout corruption. |
 
 ## Repository guides (repo root)

@@ -77,6 +77,20 @@ jobs:
       - name: go test
         run: go test -count=1 ./...
 
+  go-bench-smoke:
+    name: go test -bench smoke
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Bench smoke (no unit tests)
+        run: go test -run='^$' -bench=. -benchmem -benchtime=100ms -count=1 ./...
+
   go-build:
     name: go build ./cmd/log-mcp
     runs-on: ubuntu-latest

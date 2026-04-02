@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **CI**: **`go-bench-smoke`** job runs a short **`go test -bench`** pass in [`ci-reusable.yml`](.github/workflows/ci-reusable.yml).
+- **Tests**: golden JSON fixtures under [`internal/tools/testdata/golden/`](internal/tools/testdata/golden/) for stable tool result shapes ([`golden_json_test.go`](internal/tools/golden_json_test.go)).
+- **Docs**: [kubernetes-runbook.md](docs/kubernetes-runbook.md) for K8s stream IDs and CRI-oriented checks.
+
 - **Server diagnostics**: optional **`LOG_MCP_LOG_LEVEL`** for **`slog`** text logs on stderr when wiring log sources ([internal/server/slog.go](internal/server/slog.go)).
 
 - **`detect_anomalies`**: result includes **`segment_count`** and **`active_segment_count`**; optional **`include_warn_bursts`** adds **`repeated_warn_bursts`** (same shape as **`repeated_errors`**) for WARN/WARNING lines ([internal/loganalysis/anomaly.go](internal/loganalysis/anomaly.go)). **`incident_summary`** includes warn burst bullets when present.
