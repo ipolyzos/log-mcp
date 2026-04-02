@@ -43,6 +43,8 @@ func TestServer_LogTools_listedWithDefaults(t *testing.T) {
 		tools.ToolNameSearchLogs,
 		tools.ToolNameFilterLogs,
 		tools.ToolNameSummarizeErrors,
+		tools.ToolNameGroupByField,
+		tools.ToolNameCorrelateEvents,
 	} {
 		if !slices.Contains(names, want) {
 			t.Fatalf("missing tool %q in %v", want, names)
@@ -209,6 +211,101 @@ func TestServer_LogTools_readSearchFilter(t *testing.T) {
 	}
 	if len(so.Groups) != 1 || so.Groups[0].Count != 1 {
 		t.Fatalf("summarize groups: %+v", so.Groups)
+	}
+}
+
+func TestServer_LogTools_correlation(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	root := t.TempDir()
+	path := filepath.Join(root, "corr.log")
+	content := "" +
+		`{"level":"INFO","msg":"t1a","trace_id":"T1"}` + "\n" +
+		`{"level":"INFO","msg":"t2","trace_id":"T2"}` + "\n" +
+		`{"level":"INFO","msg":"t1b","trace_id":"T1"}` + "\n" +
+		`{"level":"INFO","msg":"r1","request_id":"R1"}` + "\n"
+	if err := os.WriteFile(path, []byte(content), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	fs, err := source.NewFileLogSource("t", root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	srv := NewWithConfig(Config{LogSource: fs})
+	ct, st := mcp.NewInMemoryTransports()
+	if _, err := srv.Connect(ctx, st, nil); err != nil {
+		t.Fatal(err)
+	}
+	client := mcp.NewClient(&mcp.Implementation{Name: "test-client", Version: "0"}, nil)
+	session, err := client.Connect(ctx, ct, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = session.Close() })
+
+	gbRes, err := session.CallTool(ctx, &mcp.CallToolParams{
+		Name: tools.ToolNameGroupByField,
+		Arguments: map[string]any{
+			"stream_id": path,
+			"field":     "trace_id",
+		},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if gbRes.IsError {
+		t.Fatalf("group_by_field: %+v", gbRes)
+	}
+	var gb tools.GroupByFieldOutput
+	if err := decodeStructured(gbRes, &gb); err != nil {
+		t.Fatal(err)
+	}
+	if len(gb.Groups) != 2 || gb.Groups[0].Count != 2 || gb.Groups[0].Value != "T1" {
+		t.Fatalf("group_by_field: %+v", gb.Groups)
+	}
+
+	cRes, err := session.CallTool(ctx, &mcp.CallToolParams{
+		Name: tools.ToolNameCorrelateEvents,
+		Arguments: map[string]any{
+			"stream_id": path,
+			"field":     "trace_id",
+			"value":     "T1",
+		},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cRes.IsError {
+		t.Fatalf("correlate_events: %+v", cRes)
+	}
+	var ce tools.CorrelateEventsOutput
+	if err := decodeStructured(cRes, &ce); err != nil {
+		t.Fatal(err)
+	}
+	if len(ce.Events) != 2 {
+		t.Fatalf("correlate_events trace: %d", len(ce.Events))
+	}
+
+	rRes, err := session.CallTool(ctx, &mcp.CallToolParams{
+		Name: tools.ToolNameCorrelateEvents,
+		Arguments: map[string]any{
+			"stream_id": path,
+			"field":     "request_id",
+			"value":     "R1",
+		},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if rRes.IsError {
+		t.Fatalf("correlate_events request: %+v", rRes)
+	}
+	var re tools.CorrelateEventsOutput
+	if err := decodeStructured(rRes, &re); err != nil {
+		t.Fatal(err)
+	}
+	if len(re.Events) != 1 {
+		t.Fatalf("correlate_events request: %d", len(re.Events))
 	}
 }
 
