@@ -41,6 +41,7 @@ Pull requests run:
 
 | Check | Role |
 |-------|------|
+| **no tracked AI/agent paths** | Fails if `.cursor/`, Copilot instructions, etc. are in the git index ([`check-no-ai-agent-paths.sh`](../.github/scripts/check-no-ai-agent-paths.sh)). |
 | **go mod tidy** | Enforces clean module metadata. |
 | **go vet** | Standard compile-time checks. |
 | **golangci-lint** | Enabled linters in [`.golangci.yml`](../.golangci.yml); version pinned in [`.github/workflows/ci-reusable.yml`](../.github/workflows/ci-reusable.yml). |

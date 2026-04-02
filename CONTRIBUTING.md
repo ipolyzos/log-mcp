@@ -13,6 +13,18 @@ engaging with the project you agree to uphold it.
 Do **not** open public issues for unfixed security vulnerabilities. Follow
 [SECURITY.md](SECURITY.md) instead.
 
+## AI / agent tooling (do not commit)
+
+Keep **Cursor**, **GitHub Copilot**, and other assistant products **local only**.
+
+- Do **not** commit paths under **`.cursor/`**, **`.copilot/`**, Copilot instruction
+  files under **`.github/`**, **`.continue/`**, **`.amazonq/`**, **`.windsurf/`**,
+  **`.qodo/`**, **`.specstory/`**, **`.aider*`**, or similar (see [`.gitignore`](.gitignore)).
+- Do **not** add **`mcp.json`** or other IDE config that lives under ignored dirs;
+  use your user-level editor config instead.
+- CI runs [`.github/scripts/check-no-ai-agent-paths.sh`](.github/scripts/check-no-ai-agent-paths.sh)
+  so **`git add -f`** on those paths still fails the build.
+
 ## Getting started
 
 1. **Fork** the repository and **clone** your fork.

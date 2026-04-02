@@ -35,4 +35,4 @@ jobs:
     steps:
       - name: All required checks passed
         run: |
-          echo "CI (go mod tidy, go vet, golangci-lint, go test, go build, gosec, govulncheck) and documentation checks passed."
+          echo "CI (no AI/agent paths, go mod tidy, go vet, golangci-lint, go test, go build, gosec, govulncheck) and documentation checks passed."

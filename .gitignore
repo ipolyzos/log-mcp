@@ -9,7 +9,7 @@
 # Test binary, built with `go test -c`
 *.test
 
-# Output of the go coverage tool
+# Output for the go coverage tool
 *.out
 coverage.html
 coverage.txt
@@ -28,18 +28,35 @@ vendor/
 *.swo
 *~
 
-# AI assistants / agent tooling (local only; never commit)
+# AI assistants / agent tooling (local only; never commit or track)
+# Cursor, Copilot, and similar products write here; keep them out of git.
 .cursor/
 **/.cursor/
 .cursorrules
+**/.cursorrules
 .github/copilot-instructions.md
 .github/instructions/
 .copilot/
+**/.copilot/
 .qodo/
+**/.qodo/
 .amazonq/
+**/.amazonq/
 .windsurf/
+**/.windsurf/
 .continue/
+**/.continue/
 .aider*
+**/.aider*
+.specstory/
+**/.specstory/
+.kilocode/
+**/.kilocode/
+.augment/
+**/.augment/
+.openhands/
+**/.openhands/
+.github/chatmodes/
 
 # OS
 .DS_Store

@@ -7,6 +7,15 @@ permissions:
   contents: read
 
 jobs:
+  no-ai-agent-paths:
+    name: no tracked AI/agent IDE paths
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check index for forbidden paths
+        run: bash .github/scripts/check-no-ai-agent-paths.sh
+
   go-mod-tidy:
     name: go mod tidy check
     runs-on: ubuntu-latest
