@@ -4,6 +4,7 @@ import (
 	"context"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 
 	"github.com/ipolyzos/log-mcp/internal/buildinfo"
@@ -42,12 +43,16 @@ func NewWithConfig(cfg Config) *mcp.Server {
 }
 
 func logSourceFromEnv() source.LogSource {
+	pipeSrc := pipeSourceFromEnv()
 	fileSrc := fileSourceFromEnv()
 	k8sSrc := k8sSourceFromEnv()
 	dockerSrc := dockerSourceFromEnv()
 	cfSrc := cfSourceFromEnv()
 
 	n := 0
+	if pipeSrc != nil {
+		n++
+	}
 	if fileSrc != nil {
 		n++
 	}
@@ -65,6 +70,8 @@ func logSourceFromEnv() source.LogSource {
 	}
 	if n == 1 {
 		switch {
+		case pipeSrc != nil:
+			return pipeSrc
 		case fileSrc != nil:
 			return fileSrc
 		case k8sSrc != nil:
@@ -75,15 +82,36 @@ func logSourceFromEnv() source.LogSource {
 			return cfSrc
 		}
 	}
-	multi, err := source.NewMultiLogSource("combined", fileSrc, k8sSrc, dockerSrc, cfSrc)
+	multi, err := source.NewMultiLogSource("combined", pipeSrc, fileSrc, k8sSrc, dockerSrc, cfSrc)
 	if err != nil {
 		logger().Warn("log-mcp: combined log source", "error", err)
-		return firstNonNilLogSource(fileSrc, k8sSrc, dockerSrc, cfSrc)
+		return firstNonNilLogSource(pipeSrc, fileSrc, k8sSrc, dockerSrc, cfSrc)
 	}
 	return multi
 }
 
-func firstNonNilLogSource(fileSrc *source.FileLogSource, k8sSrc *source.K8sLogSource, dockerSrc *source.DockerLogSource, cfSrc *source.CFLogSource) source.LogSource {
+func pipeSourceFromEnv() *source.PipeLogSource {
+	raw := strings.TrimSpace(os.Getenv("LOG_MCP_PIPE_FD"))
+	if raw == "" {
+		return nil
+	}
+	fd, err := strconv.Atoi(raw)
+	if err != nil || fd < 3 {
+		logger().Warn("log-mcp: ignoring LOG_MCP_PIPE_FD", "value", raw, "error", err)
+		return nil
+	}
+	p, err := source.NewPipeLogSourceFromFD("pipe", fd)
+	if err != nil {
+		logger().Warn("log-mcp: ignoring LOG_MCP_PIPE_FD", "error", err)
+		return nil
+	}
+	return p
+}
+
+func firstNonNilLogSource(pipeSrc *source.PipeLogSource, fileSrc *source.FileLogSource, k8sSrc *source.K8sLogSource, dockerSrc *source.DockerLogSource, cfSrc *source.CFLogSource) source.LogSource {
+	if pipeSrc != nil {
+		return pipeSrc
+	}
 	if fileSrc != nil {
 		return fileSrc
 	}

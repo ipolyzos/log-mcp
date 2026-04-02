@@ -18,6 +18,8 @@ For environment-driven backends and limits, see [architecture.md](architecture.m
 
 Do not print debug text to **stdout**; it will corrupt the MCP stream.
 
+**Piped application logs** use a separate file descriptor (**`LOG_MCP_PIPE_FD`**, integer **≥ 3**), not stdin. Tool calls then use **`stream_id` `pipe://`**. See [usage.md — Piped logs](usage.md#piped-logs-shell).
+
 ## Tool call success and failure
 
 Handlers registered with `mcp.AddTool` return a structured **result** type on success.
@@ -36,7 +38,7 @@ operators and client authors grep logs.
 
 | Situation | Example message shape |
 |-----------|------------------------|
-| No log source configured | `log access not configured: set LOG_MCP_ROOT to a readable file or directory …` |
+| No log source configured | `log access not configured: set LOG_MCP_ROOT …` or **`LOG_MCP_PIPE_FD`** (fd ≥ 3) or another backend; see [usage.md](usage.md). |
 | Missing `stream_id` | `stream_id is required` |
 | Missing `keyword` (search) | `keyword is required for search_logs` |
 | Empty filters (filter_logs) | `filter_logs requires at least one of: since, until, level, keyword, keywords_any` |
