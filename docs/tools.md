@@ -54,6 +54,7 @@ source supports it).
 | Result | `stream_id` | string | yes | Echo. |
 | Result | `lines` | array | yes | Objects: `line_number`, `timestamp?`, `level?`, `message?`, `text`. |
 | Result | `truncated` | bool | yes | True if more lines existed beyond caps. |
+| Result | `result_hint` | string | no | When `lines` is empty and not `truncated`: **`no_lines_in_stream`** if no filters were used; **`no_matching_lines`** if filters excluded every line. Omitted when lines exist or when truncated with zero lines. |
 
 ---
 
@@ -67,7 +68,7 @@ Keyword search over redacted lines.
 | Params | `keyword` | string | yes | Non-empty substring. |
 | Params | `max_matches` | int64 | no | Default **500**; capped by security max output lines. |
 | Params | `since`, `until`, `level` | string | no | Same semantics as `read_logs`. |
-| Result | | | | Same shape as `read_logs` result. |
+| Result | | | | Same shape as `read_logs` result (`result_hint` **`no_matching_lines`** when zero hits and not truncated). |
 
 ---
 
@@ -133,7 +134,7 @@ Use **`keywords_any`** on **`filter_logs`** (and optionally **`read_logs`**) for
 | Params | `stream_id` | string | yes | |
 | Params | `max_lines` | int64 | no | Default **500**. |
 | Params | `since`, `until`, `level`, `keyword`, `keywords_any` | string / string[] | no | At least **one** predicate must be non-empty; **all set fields** are **AND**ed; `keyword` xor `keywords_any` for text. |
-| Result | | | | Same shape as `read_logs` result. |
+| Result | | | | Same shape as `read_logs` result (`result_hint` **`no_matching_lines`** when zero hits and not truncated). |
 
 ---
 

@@ -59,9 +59,10 @@ type filterLogsInput struct {
 
 // LogsToolOutput is the structured result for read_logs, search_logs, and filter_logs.
 type LogsToolOutput struct {
-	StreamID  string        `json:"stream_id"`
-	Lines     []LogLineJSON `json:"lines"`
-	Truncated bool          `json:"truncated"`
+	StreamID   string        `json:"stream_id"`
+	Lines      []LogLineJSON `json:"lines"`
+	Truncated  bool          `json:"truncated"`
+	ResultHint string        `json:"result_hint,omitempty"`
 }
 
 // LogLineJSON is one log row in tool output (timestamps as RFC3339 strings).
@@ -117,7 +118,7 @@ func readLogsHandler(src source.LogSource) func(context.Context, *mcp.CallToolRe
 		if err != nil {
 			return nil, LogsToolOutput{}, err
 		}
-		return nil, toLogsOutput(sid, lines, trunc), nil
+		return nil, toLogsOutput(sid, lines, trunc, logsEmptyHint(true, f.Empty(), trunc, len(lines))), nil
 	}
 }
 
@@ -144,7 +145,7 @@ func searchLogsHandler(src source.LogSource) func(context.Context, *mcp.CallTool
 		if err != nil {
 			return nil, LogsToolOutput{}, err
 		}
-		return nil, toLogsOutput(sid, lines, trunc), nil
+		return nil, toLogsOutput(sid, lines, trunc, logsEmptyHint(false, false, trunc, len(lines))), nil
 	}
 }
 
@@ -170,7 +171,7 @@ func filterLogsHandler(src source.LogSource) func(context.Context, *mcp.CallTool
 		if err != nil {
 			return nil, LogsToolOutput{}, err
 		}
-		return nil, toLogsOutput(sid, lines, trunc), nil
+		return nil, toLogsOutput(sid, lines, trunc, logsEmptyHint(false, false, trunc, len(lines))), nil
 	}
 }
 
@@ -270,11 +271,22 @@ func parseRFC3339Optional(s string) (*time.Time, error) {
 	return &t, nil
 }
 
-func toLogsOutput(streamID string, lines []logtool.Line, truncated bool) LogsToolOutput {
+func logsEmptyHint(isReadLogs bool, readHadNoFilters bool, truncated bool, nLines int) string {
+	if nLines > 0 || truncated {
+		return ""
+	}
+	if isReadLogs && readHadNoFilters {
+		return "no_lines_in_stream"
+	}
+	return "no_matching_lines"
+}
+
+func toLogsOutput(streamID string, lines []logtool.Line, truncated bool, resultHint string) LogsToolOutput {
 	out := LogsToolOutput{
-		StreamID:  streamID,
-		Lines:     make([]LogLineJSON, 0, len(lines)),
-		Truncated: truncated,
+		StreamID:   streamID,
+		Lines:      make([]LogLineJSON, 0, len(lines)),
+		Truncated:  truncated,
+		ResultHint: resultHint,
 	}
 	for _, ln := range lines {
 		j := LogLineJSON{
