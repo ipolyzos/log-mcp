@@ -122,7 +122,7 @@ func (f *FileLogSource) allowedFile(abs string) bool {
 
 func (f *FileLogSource) streamFile(ctx context.Context, file *os.File, q Query, ch chan<- LogEntry) {
 	defer close(ch)
-	defer file.Close()
+	defer func() { _ = file.Close() }()
 
 	br := bufio.NewReaderSize(file, 1<<20) // 1 MiB buffer for wide lines / throughput
 	var (
