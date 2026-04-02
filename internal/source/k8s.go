@@ -12,8 +12,9 @@ import (
 // K8s stream IDs use the form k8s://namespace/pod or k8s://namespace/pod/container.
 const k8sStreamPrefix = "k8s://"
 
-// podListJSONPath lists pod names one per line (kubectl jsonpath).
-const podListJSONPath = `{range .items[*]}{.metadata.name}{"\n"}{end}`
+// KubectlPodListJSONPath is the exact kubectl -o jsonpath= value for pod listing.
+// It must stay in sync with [github.com/ipolyzos/log-mcp/internal/security] allowlist.
+const KubectlPodListJSONPath = `{range .items[*]}{.metadata.name}{"\n"}{end}`
 
 // dns1123Label matches a single Kubernetes DNS label (namespace, pod, container names).
 var dns1123Label = regexp.MustCompile(`^[a-z0-9]([-a-z0-9]*[a-z0-9])?$`)
@@ -81,7 +82,7 @@ func (k *K8sLogSource) List(ctx context.Context) ([]LogStream, error) {
 		}
 		args := []string{
 			"get", "pods", "-n", ns,
-			"-o", "jsonpath=" + podListJSONPath,
+			"-o", "jsonpath=" + KubectlPodListJSONPath,
 		}
 		b, err := k.runner.CombinedOutput(ctx, args...)
 		if err != nil {

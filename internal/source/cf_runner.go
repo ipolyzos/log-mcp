@@ -3,6 +3,8 @@ package source
 import (
 	"context"
 	"os/exec"
+
+	"github.com/ipolyzos/log-mcp/internal/security"
 )
 
 // CFRunner runs the Cloud Foundry CLI with explicit argument slices only (no shell).
@@ -24,6 +26,10 @@ func (e *ExecCFRunner) bin() string {
 
 // CombinedOutput implements [CFRunner].
 func (e *ExecCFRunner) CombinedOutput(ctx context.Context, args ...string) ([]byte, error) {
+	if err := security.ValidateCFArgs(args); err != nil {
+		return nil, err
+	}
 	cmd := exec.CommandContext(ctx, e.bin(), args...)
+	security.HardenExecCmd(cmd)
 	return cmd.Output()
 }

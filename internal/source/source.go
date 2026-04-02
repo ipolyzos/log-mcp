@@ -19,6 +19,8 @@ type Query struct {
 	// MaxBytes stops after approximately this many raw bytes of line payloads
 	// (excluding internal framing); 0 means no limit.
 	MaxBytes int64
+	// MaxLineBytes caps each raw line length in bytes; 0 means no per-line cap.
+	MaxLineBytes int64
 }
 
 // LogEntry is one logical line from a log stream.

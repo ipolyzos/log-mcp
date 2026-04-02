@@ -7,6 +7,8 @@ import (
 	"strconv"
 	"strings"
 	"testing"
+
+	"github.com/ipolyzos/log-mcp/internal/security"
 )
 
 // mockKubectlRunner is a test double with canned get pods / logs behavior.
@@ -171,5 +173,13 @@ func TestParseK8sStreamID(t *testing.T) {
 	_, _, _, err = parseK8sStreamID("/tmp/file.log")
 	if err == nil {
 		t.Fatal("expected error")
+	}
+}
+
+func TestKubectlPodListJSONPathSecuritySync(t *testing.T) {
+	t.Parallel()
+	args := []string{"get", "pods", "-n", "default", "-o", "jsonpath=" + KubectlPodListJSONPath}
+	if err := security.ValidateKubectlArgs(args); err != nil {
+		t.Fatal(err)
 	}
 }

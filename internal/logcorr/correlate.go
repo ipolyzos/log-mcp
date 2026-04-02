@@ -4,6 +4,7 @@ import (
 	"context"
 	"strings"
 
+	"github.com/ipolyzos/log-mcp/internal/security"
 	"github.com/ipolyzos/log-mcp/internal/source"
 )
 
@@ -35,8 +36,9 @@ func CorrelateEvents(ctx context.Context, src source.LogSource, streamID, field,
 	if maxScan <= 0 {
 		maxScan = defaultMaxScanCorr
 	}
-	if maxScan > maxScanCap {
-		maxScan = maxScanCap
+	lim := security.LimitsFromEnv()
+	if maxScan > lim.MaxScanLines {
+		maxScan = lim.MaxScanLines
 	}
 	if maxEvents <= 0 {
 		maxEvents = defaultMaxEvents

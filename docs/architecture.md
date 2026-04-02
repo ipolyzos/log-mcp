@@ -21,6 +21,7 @@ This document describes how **log-mcp** is structured today and how log data flo
 | Log query helpers | `internal/logtool` | Shared filter + collect over the pipeline (time, level, keyword). |
 | Error summarization | `internal/errsummary` | Deterministic ERROR-level grouping, frequency ranking, per-service counts (no LLM). |
 | Log correlation | `internal/logcorr` | Field-based grouping and timelines (`trace_id`, `request_id`, custom JSON keys). |
+| Security | `internal/security` | CLI argv allowlists, read-only file checks, mandatory redaction entrypoint, env-driven I/O caps. |
 | Build metadata | `internal/buildinfo` | Static name/version for MCP `Implementation` and `version_info`. |
 
 ## MCP layer (stdio)
@@ -42,11 +43,24 @@ Tools apply to any configured backend the same way. When nothing is configured, 
 - **`read_logs`** — sequential read with optional `max_lines` and optional filters (`since` / `until` RFC3339, `level`, `keyword`). With no filters, `max_lines` is passed to the source (filesystem tail or kubectl `--tail`).
 - **`search_logs`** — requires `keyword`; optional time and level filters; caps matches with `max_matches`.
 - **`filter_logs`** — requires at least one of `since`, `until`, `level`, or `keyword`; optional `max_lines`.
-- **`summarize_errors`** — scans up to `max_scan_lines` (default 20000), keeps ERROR/FATAL/CRITICAL-style levels, groups lines by a stable fingerprint ([`errsummary`](../internal/errsummary/summary.go): redaction + normalized message and error-related JSON fields), sorts groups by **count descending** then fingerprint ascending, and reports **by_service** using `service` / `app` / `logger` / … fields or the log file basename.
+- **`summarize_errors`** — scans up to `max_scan_lines` (default 20000; upper bound `LOG_MCP_SEC_MAX_SCAN_LINES`), keeps ERROR/FATAL/CRITICAL-style levels, groups lines by a stable fingerprint ([`errsummary`](../internal/errsummary/summary.go): redaction + normalized message and error-related JSON fields), sorts groups by **count descending** then fingerprint ascending, and reports **by_service** using `service` / `app` / `logger` / … fields or the log file basename.
 - **`group_by_field`** — scans a capped prefix of the stream, groups lines that contain a JSON field. Logical names **`trace_id`** and **`request_id`** resolve common aliases (`traceId`, `x-trace-id`, `req_id`, `x-request-id`, …); any other `field` is matched case-insensitively on keys. Lines without the field are skipped; groups are ranked by **count descending**.
 - **`correlate_events`** — returns all lines in the scan window whose field value **exactly** matches `value`, ordered by timestamp then line number (for timelines along one trace or request).
 
-Outputs are **redacted** via [`internal/pipeline`](../internal/pipeline/pipeline.go) and [`normalize.Apply`](../internal/normalize/normalize.go). For tests or custom deployments, [`NewWithConfig`](../internal/server/server.go) accepts an explicit [`LogSource`](../internal/source/source.go).
+Outputs are **redacted** via [`internal/pipeline`](../internal/pipeline/pipeline.go) using [`security.RedactLine`](../internal/security/redact.go) (canonical [`normalize.DefaultConfig`](../internal/normalize/config.go); not configurable per tool). For tests or custom deployments, [`NewWithConfig`](../internal/server/server.go) accepts an explicit [`LogSource`](../internal/source/source.go).
+
+### Security limits (`LOG_MCP_SEC_*`)
+
+Optional caps (positive integers; invalid or empty env falls back to defaults):
+
+- **`LOG_MCP_SEC_MAX_OUTPUT_LINES`** — max lines returned per `read_logs` / `search_logs` / `filter_logs` response (default 10000).
+- **`LOG_MCP_SEC_MAX_STREAM_BYTES`** — max raw bytes read per stream when `MaxBytes` is unset on the query (default 50 MiB); applied by [`logtool.EnrichQuery`](../internal/logtool/query.go) before pipeline runs.
+- **`LOG_MCP_SEC_MAX_LINE_BYTES`** — max bytes per raw line before redaction (default 1 MiB); applied in file and subprocess line readers when unset on the query.
+- **`LOG_MCP_SEC_MAX_SCAN_LINES`** — upper bound for `summarize_errors`, `group_by_field`, and `correlate_events` scans (default 100000).
+
+### Command allowlist and read-only I/O
+
+[`ExecKubectlRunner`](../internal/source/k8s_runner.go), [`ExecDockerRunner`](../internal/source/docker_runner.go), and [`ExecCFRunner`](../internal/source/cf_runner.go) call [`security.ValidateKubectlArgs`](../internal/security/cli.go) / `ValidateDockerArgs` / `ValidateCFArgs` before every invocation; argv must match the fixed shapes used by the log sources (no arbitrary flags). Subprocess stdin is detached ([`security.HardenExecCmd`](../internal/security/exec.go)). Filesystem reads use `O_RDONLY` and [`security.FileReadableUnderRoots`](../internal/security/path.go) (symlink resolution) so paths cannot escape configured roots through links.
 
 ## Log source abstraction
 
@@ -113,7 +127,7 @@ Cancellation is honored at the **source**: when the [`context.Context`] passed t
 - If a root is a **file**, it appears as a single stream.
 - If a root is a **directory**, each **immediate** child regular file is a stream (no recursive descent yet).
 
-`Read` resolves `Query.StreamID` to an absolute path and allows the open only if that path is contained under one of the configured roots (via `filepath.Rel`), so arbitrary path injection from tool arguments can be rejected when tools validate against `List` results.
+`Read` resolves `Query.StreamID` to an absolute path and allows the open only if the resolved path (after `filepath.EvalSymlinks` on the target) is a regular file under one of the configured roots ([`security.FileReadableUnderRoots`](../internal/security/path.go)), so symlink escapes and arbitrary path injection are rejected when tools validate against `List` results. Opens use read-only mode (`os.O_RDONLY`).
 
 Streaming uses a large `bufio.Reader` buffer and `ReadString('\n')` so individual lines can exceed the default `bufio.Scanner` token limit—important for “wide” log lines.
 

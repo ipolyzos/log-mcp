@@ -5,6 +5,8 @@ import (
 	"io"
 	"os/exec"
 	"sync"
+
+	"github.com/ipolyzos/log-mcp/internal/security"
 )
 
 // DockerRunner runs docker with explicit argument slices only (no shell).
@@ -27,13 +29,21 @@ func (e *ExecDockerRunner) bin() string {
 
 // CombinedOutput implements [DockerRunner].
 func (e *ExecDockerRunner) CombinedOutput(ctx context.Context, args ...string) ([]byte, error) {
+	if err := security.ValidateDockerArgs(args); err != nil {
+		return nil, err
+	}
 	cmd := exec.CommandContext(ctx, e.bin(), args...)
+	security.HardenExecCmd(cmd)
 	return cmd.Output()
 }
 
 // StdoutPipe implements [DockerRunner].
 func (e *ExecDockerRunner) StdoutPipe(ctx context.Context, args ...string) (io.ReadCloser, error) {
+	if err := security.ValidateDockerArgs(args); err != nil {
+		return nil, err
+	}
 	cmd := exec.CommandContext(ctx, e.bin(), args...)
+	security.HardenExecCmd(cmd)
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
 		return nil, err
