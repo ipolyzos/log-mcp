@@ -1,0 +1,4 @@
+# Kubernetes container runtime interface (CRI) log line shape.
+# Ref: https://kubernetes.io/docs/concepts/cluster-administration/logging/
+2024-06-15T10:30:01.123456789Z stdout F GET /healthz HTTP/1.1 200
+2024-06-15T10:30:02Z stderr F connection refused to redis.cache.svc.cluster.local:6379

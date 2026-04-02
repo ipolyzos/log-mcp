@@ -1,0 +1,4 @@
+# Docker json-file logging driver: one JSON object per line.
+# Ref: https://docs.docker.com/engine/logging/drivers/json-file/
+{"log":"Listening on port 8080\n","stream":"stdout","time":"2024-06-15T10:31:00.123456789Z"}
+{"log":"2024-06-15 10:31:01 ERROR db query timeout\n","stream":"stderr","time":"2024-06-15T10:31:01.5Z"}
